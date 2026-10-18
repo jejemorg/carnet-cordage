@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carnet de cordage</title>
+<meta name="theme-color" content="#1d4f7a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cordage">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+/* Layout: one column workbench — saisie en haut (fiche d'atelier), historique en dessous, comme un registre */
+:root {
+  --bg: #eef2f5;
+  --surface: #ffffff;
+  --fg: #14212b;
+  --muted: #5b6b78;
+  --line: #d3dce3;
+  --court: #1d4f7a;
+  --court-ink: #ffffff;
+  --ball: #d7e84a;
+  --ball-ink: #1b2400;
+  --danger: #b3261e;
+  --focus: #2f7fd0;
+  --chip: #e3ebf2;
+  --display: "Bahnschrift", "DIN Alternate", "Roboto Condensed", "Arial Narrow", sans-serif;
+  --body: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1820; --surface: #16232e; --fg: #e6edf2; --muted: #93a4b1; --line: #2a3a47;
+    --court: #3d7fb8; --court-ink: #ffffff; --ball: #d7e84a; --ball-ink: #1b2400;
+    --danger: #ff8a80; --focus: #7db8f0; --chip: #1f3141; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1820; --surface: #16232e; --fg: #e6edf2; --muted: #93a4b1; --line: #2a3a47;
+  --court: #3d7fb8; --court-ink: #ffffff; --ball: #d7e84a; --ball-ink: #1b2400;
+  --danger: #ff8a80; --focus: #7db8f0; --chip: #1f3141; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+.wrap { max-width: 920px; margin: 0 auto; display: grid; gap: 28px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: 2.4rem; line-height: 1; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+h1 span { display: inline-block; background: var(--ball); color: var(--ball-ink); padding: 0 .25em; margin-left: .1em; border-radius: 3px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 1.45rem; margin: 0; letter-spacing: .01em; }
+.stats { display: flex; gap: 20px; font-variant-numeric: tabular-nums; }
+.stat b { display: block; font-family: var(--display); font-size: 1.7rem; line-height: 1; }
+.stat small { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: .7rem; }
+
+/* Fiche de saisie */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+form.card { padding: 20px; display: grid; gap: 18px; border-top: 4px solid var(--court); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px 16px; }
+.field { display: grid; gap: 5px; position: relative; min-width: 0; }
+label { font-size: .72rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 700; }
+input {
+  font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+  padding: 9px 11px; width: 100%; min-width: 0; font-size: 16px; /* 16px : évite le zoom automatique de Safari sur iPhone */
+}
+input:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: transparent; }
+.hint { font-size: .78rem; color: var(--muted); min-height: 1.1em; font-variant-numeric: tabular-nums; }
+
+/* Suggestions (liste déroulante) */
+.sugg {
+  position: absolute; top: calc(100% - 18px); left: 0; right: 0; z-index: 20; margin: 0; padding: 4px; list-style: none;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 24px rgba(10,25,40,.18);
+  max-height: 240px; overflow-y: auto;
+}
+.sugg li { padding: 7px 9px; border-radius: 5px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; }
+.sugg li[aria-selected="true"], .sugg li:hover { background: var(--chip); }
+.sugg li small { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sugg mark { background: none; color: var(--court); font-weight: 700; }
+
+/* Suggestion "comme la dernière fois" */
+.recall {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 14px; border-radius: 8px;
+  background: var(--chip); border: 1px dashed var(--court);
+}
+.recall p { margin: 0; flex: 1 1 260px; min-width: 0; }
+.recall strong { font-weight: 700; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button { font: inherit; cursor: pointer; border-radius: 6px; padding: 9px 16px; border: 1px solid transparent; }
+button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.primary { background: var(--court); color: var(--court-ink); font-weight: 700; }
+.primary:disabled { opacity: .5; cursor: not-allowed; }
+.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+.ball { background: var(--ball); color: var(--ball-ink); font-weight: 700; }
+.status { font-size: .88rem; color: var(--muted); }
+.status.err { color: var(--danger); }
+
+/* Historique */
+.histhead { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.histhead input { max-width: 280px; }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-size: .7rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); padding: 12px 12px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td.date { white-space: nowrap; color: var(--muted); }
+td.owner { font-weight: 700; }
+.tension { font-family: var(--display); font-size: 1.15rem; font-weight: 600; white-space: nowrap; }
+.tension small { font-family: var(--body); font-size: .75rem; color: var(--muted); font-weight: 400; margin-left: 4px; }
+td.ops { white-space: nowrap; text-align: right; }
+td.ops button { padding: 5px 9px; font-size: .82rem; }
+.danger { background: var(--danger); color: var(--surface); }
+.empty { padding: 36px 20px; text-align: center; color: var(--muted); }
+.empty b { display: block; color: var(--fg); font-family: var(--display); font-size: 1.3rem; margin-bottom: 4px; }
+
+@media (max-width: 640px) {
+  h1 { font-size: 2rem; }
+  thead { display: none; }
+  table, tbody, tr, td { display: block; }
+  tr { padding: 12px 14px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
+  tr:last-child { border-bottom: 0; }
+  td { padding: 0; border: 0; }
+  td.owner { grid-column: 1; }
+  td.date { grid-column: 2; grid-row: 1; text-align: right; }
+  td.racket, td.string { grid-column: 1 / -1; }
+  td.tension-cell { grid-column: 1; }
+  td.ops { grid-column: 2; grid-row: 4; }
+  td[data-l]::before { content: attr(data-l) " · "; color: var(--muted); font-size: .8rem; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  tr.fresh td { animation: flash 1.6s ease-out; }
+  @keyframes flash { from { background: var(--ball); } to { background: transparent; } }
+}
+.backup { padding: 18px 20px; display: grid; gap: 10px; }
+.backup p { margin: 0; color: var(--muted); font-size: .9rem; max-width: 65ch; }
+.auto { display: grid; gap: 8px; padding: 14px; border-radius: 8px; background: var(--chip); }
+.pill { justify-self: start; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 3px 10px; border-radius: 999px; background: var(--line); color: var(--fg); }
+.pill.on { background: var(--court); color: var(--court-ink); }
+.pill.warn { background: var(--danger); color: var(--surface); }
+.auto p { color: var(--fg); }
+a.pill { text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Carnet de <span>cordage</span></h1>
+    <div class="stats" aria-live="polite">
+      <div class="stat"><b id="statTotal">0</b><small>cordages</small></div>
+      <div class="stat"><b id="statMonth">0</b><small>ce mois-ci</small></div>
+      <div class="stat"><b id="statPeople">0</b><small>joueurs</small></div>
+    </div>
+    <a class="pill" id="headPill" href="#bkTitle">Sauvegarde auto désactivée</a>
+  </header>
+
+  <form class="card" id="form" autocomplete="off" novalidate>
+    <h2>Nouveau cordage</h2>
+    <div class="grid">
+      <div class="field">
+        <label for="f-date">Date</label>
+        <input type="date" id="f-date" required>
+        <span class="hint"></span>
+      </div>
+      <div class="field">
+        <label for="f-owner">Propriétaire</label>
+        <input id="f-owner" data-key="owner" placeholder="ex. Julien" required>
+        <span class="hint" id="h-owner"></span>
+      </div>
+      <div class="field">
+        <label for="f-racket">Modèle de raquette</label>
+        <input id="f-racket" data-key="racket" placeholder="ex. Babolat Pure Aero 98">
+        <span class="hint" id="h-racket"></span>
+      </div>
+      <div class="field">
+        <label for="f-tension">Tension (kg)</label>
+        <input id="f-tension" data-key="tension" inputmode="decimal" placeholder="ex. 24 ou 24/23">
+        <span class="hint" id="h-tension"></span>
+      </div>
+      <div class="field">
+        <label for="f-string">Cordage</label>
+        <input id="f-string" data-key="string" placeholder="ex. Luxilon ALU Power 1.25">
+        <span class="hint" id="h-string"></span>
+      </div>
+    </div>
+
+    <div class="recall" id="recall" hidden>
+      <p id="recallText"></p>
+      <button type="button" class="ball" id="recallApply">Reprendre ces réglages</button>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="primary" id="save">Enregistrer le cordage</button>
+      <button type="button" class="ghost" id="reset">Vider le formulaire</button>
+      <span class="status" id="status" role="status"></span>
+    </div>
+  </form>
+
+  <section class="card" aria-labelledby="histTitle">
+    <div class="histhead" style="padding: 16px 16px 4px;">
+      <h2 id="histTitle">Historique</h2>
+      <input type="search" id="search" placeholder="Filtrer (nom, raquette, cordage…)" aria-label="Filtrer l'historique">
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Date</th><th>Propriétaire</th><th>Raquette</th><th>Tension</th><th>Cordage</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="empty">
+      <b id="emptyTitle">Chargement du carnet…</b>
+      <span id="emptyText">Vos cordages apparaîtront ici.</span>
+    </div>
+  </section>
+
+  <section class="card backup" aria-labelledby="bkTitle">
+    <h2 id="bkTitle">Sauvegarde</h2>
+    <div class="auto" id="auto">
+      <span class="pill" id="autoPill">Sauvegarde auto désactivée</span>
+      <p id="autoText">Choisissez une fois le fichier de sauvegarde, dans le dossier du carnet. Chaque cordage ajouté ou supprimé y sera ensuite écrit automatiquement.</p>
+      <div class="actions">
+        <button type="button" class="ball" id="autoConnect">Choisir le fichier de sauvegarde…</button>
+        <button type="button" class="ghost" id="autoChange" hidden>Changer de fichier…</button>
+      </div>
+    </div>
+    <p>Le carnet est aussi gardé dans ce navigateur. Vous pouvez exporter une copie à tout moment.</p>
+    <div class="actions">
+      <button type="button" class="ghost" id="exportJson">Exporter la sauvegarde (.json)</button>
+      <button type="button" class="ghost" id="exportCsv">Exporter pour Excel (.csv)</button>
+      <button type="button" class="ghost" id="importBtn">Restaurer une sauvegarde…</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+      <span class="status" id="bkStatus" role="status"></span>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const KG_TO_LB = 2.20462;
+  let entries = [];       // [{id, date, owner, racket, tension, string, createdAt}]
+  const STORE_KEY = "carnet-cordage.v1";
+  let storageOk = true;
+  let confirmId = null;   // ligne en attente de confirmation de suppression
+  let freshId = null;
+  let recallData = null;
+
+  const todayISO = () => {
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  };
+  const fmtDate = (iso) => {
+    if (!iso) return "";
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+  };
+  const norm = (s) => (s || "").toString().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  const esc = (s) => (s || "").toString().replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const toLb = (t) => {
+    const parts = (t || "").toString().split("/").map((p) => parseFloat(p.replace(",", ".")));
+    if (!parts.length || parts.some(isNaN)) return "";
+    return parts.map((n) => (n * KG_TO_LB).toFixed(1)).join("/") + " lb";
+  };
+  const sorted = () => [...entries].sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
+
+  /* ---------- Suggestions ---------- */
+  // Valeurs distinctes d'un champ, classées par fréquence puis récence ; optionnellement restreintes par contexte.
+  function valuesFor(key, ctx) {
+    const map = new Map();
+    for (const e of sorted()) {
+      const v = (e[key] || "").toString().trim();
+      if (!v) continue;
+      let w = 1;
+      if (ctx) {
+        if (ctx.owner && norm(e.owner) === norm(ctx.owner)) w += 3;
+        if (ctx.racket && norm(e.racket) === norm(ctx.racket)) w += 2;
+      }
+      const k = norm(v);
+      const cur = map.get(k);
+      if (cur) { cur.count++; cur.score += w; }
+      else map.set(k, { value: v, count: 1, score: w, last: e.date });
+    }
+    return [...map.values()].sort((a, b) => b.score - a.score || (b.last || "").localeCompare(a.last || ""));
+  }
+
+  function context() {
+    return { owner: $("f-owner").value, racket: $("f-racket").value };
+  }
+
+  const combos = [];
+  document.querySelectorAll("input[data-key]").forEach((input) => {
+    const key = input.dataset.key;
+    const list = document.createElement("ul");
+    list.className = "sugg"; list.hidden = true; list.setAttribute("role", "listbox");
+    list.id = "sugg-" + key;
+    input.setAttribute("role", "combobox");
+    input.setAttribute("aria-autocomplete", "list");
+    input.setAttribute("aria-controls", list.id);
+    input.setAttribute("aria-expanded", "false");
+    input.parentElement.appendChild(list);
+    let items = [], active = -1;
+
+    function open() {
+      const q = norm(input.value);
+      const ctx = key === "owner" ? null : context();
+      items = valuesFor(key, ctx).filter((it) => !q || norm(it.value).includes(q));
+      if (items.length === 1 && norm(items[0].value) === q) items = [];
+      items = items.slice(0, 8);
+      active = -1;
+      if (!items.length) return close();
+      list.innerHTML = items.map((it, i) => {
+        const v = esc(it.value);
+        const label = q ? v.replace(new RegExp("(" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "i"), "<mark>$1</mark>") : v;
+        const extra = key === "tension" ? toLb(it.value) + " · " : "";
+        return `<li role="option" id="${list.id}-${i}" data-i="${i}" aria-selected="false"><span>${label}</span><small>${extra}${it.count}×</small></li>`;
+      }).join("");
+      list.style.top = (input.offsetTop + input.offsetHeight + 3) + "px";
+      list.hidden = false; input.setAttribute("aria-expanded", "true");
+    }
+    function close() { list.hidden = true; input.setAttribute("aria-expanded", "false"); input.removeAttribute("aria-activedescendant"); active = -1; }
+    function pick(i) {
+      if (!items[i]) return;
+      input.value = items[i].value; close();
+      input.dispatchEvent(new Event("change"));
+      const next = [...document.querySelectorAll("#form input")];
+      const n = next[next.indexOf(input) + 1];
+      if (n) n.focus();
+    }
+    function highlight(i) {
+      active = i;
+      [...list.children].forEach((li, j) => li.setAttribute("aria-selected", j === i ? "true" : "false"));
+      if (i >= 0) { input.setAttribute("aria-activedescendant", list.id + "-" + i); list.children[i].scrollIntoView({ block: "nearest" }); }
+    }
+    input.addEventListener("focus", open);
+    input.addEventListener("input", () => { open(); updateHints(); });
+    input.addEventListener("blur", () => setTimeout(close, 120));
+    input.addEventListener("keydown", (e) => {
+      if (list.hidden && (e.key === "ArrowDown")) { open(); return; }
+      if (list.hidden) return;
+      if (e.key === "ArrowDown") { e.preventDefault(); highlight(Math.min(active + 1, items.length - 1)); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); highlight(Math.max(active - 1, 0)); }
+      else if (e.key === "Enter" && active >= 0) { e.preventDefault(); pick(active); }
+      else if (e.key === "Escape") { close(); }
+    });
+    list.addEventListener("mousedown", (e) => {
+      const li = e.target.closest("li"); if (!li) return;
+      e.preventDefault(); pick(+li.dataset.i);
+    });
+    combos.push({ input, open, close });
+  });
+
+  // Indices sous les champs + carte "comme la dernière fois"
+  function updateHints() {
+    const owner = $("f-owner").value.trim();
+    const racket = $("f-racket").value.trim();
+    const all = sorted();
+    const ownerHist = owner ? all.filter((e) => norm(e.owner) === norm(owner)) : [];
+    $("h-owner").textContent = !owner ? "" : ownerHist.length
+      ? `${ownerHist.length} cordage${ownerHist.length > 1 ? "s" : ""}, dernier le ${fmtDate(ownerHist[0].date)}`
+      : (entries.length ? "Nouveau joueur" : "");
+    const rackHist = racket ? all.filter((e) => norm(e.racket) === norm(racket)) : [];
+    $("h-racket").textContent = rackHist.length ? `Déjà cordée ${rackHist.length} fois` : "";
+    $("h-tension").textContent = toLb($("f-tension").value) ? "= " + toLb($("f-tension").value) : "";
+    $("h-string").textContent = "";
+
+    // Dernier cordage correspondant : même joueur (+ même raquette si renseignée)
+    let match = null;
+    if (ownerHist.length) match = (racket && ownerHist.find((e) => norm(e.racket) === norm(racket))) || ownerHist[0];
+    else if (rackHist.length) match = rackHist[0];
+    const f = { racket: $("f-racket").value.trim(), tension: $("f-tension").value.trim(), string: $("f-string").value.trim() };
+    const same = match && norm(f.racket) === norm(match.racket) && norm(f.tension) === norm(match.tension) && norm(f.string) === norm(match.string);
+    if (match && !same) {
+      recallData = match;
+      const who = ownerHist.length ? `<strong>${esc(match.owner)}</strong>` : "Cette raquette";
+      const parts = [match.racket, match.tension ? match.tension + " kg" : "", match.string].filter(Boolean).map(esc).join(" · ");
+      $("recallText").innerHTML = `Dernière fois (${fmtDate(match.date)}), ${who} : ${parts}`;
+      $("recall").hidden = false;
+    } else { recallData = null; $("recall").hidden = true; }
+  }
+  ["f-owner", "f-racket", "f-tension", "f-string"].forEach((id) => $(id).addEventListener("change", updateHints));
+
+  $("recallApply").addEventListener("click", () => {
+    if (!recallData) return;
+    if (!$("f-owner").value.trim()) $("f-owner").value = recallData.owner || "";
+    $("f-racket").value = recallData.racket || "";
+    $("f-tension").value = recallData.tension || "";
+    $("f-string").value = recallData.string || "";
+    updateHints();
+    $("save").focus();
+  });
+
+  function resetForm() {
+    $("f-date").value = todayISO();
+    ["f-owner", "f-racket", "f-tension", "f-string"].forEach((id) => ($(id).value = ""));
+    updateHints();
+  }
+  $("reset").addEventListener("click", () => { resetForm(); setStatus(""); $("f-owner").focus(); });
+
+  function setStatus(msg, err) { $("status").textContent = msg; $("status").className = "status" + (err ? " err" : ""); }
+
+  /* ---------- Enregistrement ---------- */
+  $("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = {
+      date: $("f-date").value || todayISO(),
+      owner: $("f-owner").value.trim(),
+      racket: $("f-racket").value.trim(),
+      tension: $("f-tension").value.trim().replace(",", "."),
+      string: $("f-string").value.trim(),
+      createdAt: Date.now(),
+    };
+    if (!data.owner) { setStatus("Indiquez le propriétaire de la raquette.", true); $("f-owner").focus(); return; }
+    const entry = { id: newId(), ...data };
+    entries.push(entry);
+    freshId = entry.id;
+    const ok = persist();
+    render();
+    setStatus(ok ? `Cordage de ${data.owner} enregistré.`
+      : "Enregistré pour cette session seulement : ce navigateur bloque le stockage. Exportez une sauvegarde avant de fermer.", !ok);
+    resetForm();
+    $("f-owner").focus();
+  });
+
+  /* ---------- Historique ---------- */
+  function render() {
+    const q = norm($("search").value);
+    const all = sorted();
+    const rows = all.filter((e) => !q || norm([e.owner, e.racket, e.string, e.tension].join(" ")).includes(q));
+    $("rows").innerHTML = rows.map((e) => {
+      const lb = toLb(e.tension);
+      const ops = confirmId === e.id
+        ? `<button type="button" class="danger" data-act="del" data-id="${e.id}">Supprimer</button> <button type="button" class="ghost" data-act="cancel">Annuler</button>`
+        : `<button type="button" class="ghost" data-act="copy" data-id="${e.id}" title="Pré-remplir le formulaire avec ce cordage">Refaire</button> <button type="button" class="ghost" data-act="ask" data-id="${e.id}" aria-label="Supprimer ce cordage">✕</button>`;
+      return `<tr class="${e.id === freshId ? "fresh" : ""}">
+        <td class="date">${fmtDate(e.date)}</td>
+        <td class="owner">${esc(e.owner)}</td>
+        <td class="racket" data-l="Raquette">${esc(e.racket) || "—"}</td>
+        <td class="tension-cell"><span class="tension">${e.tension ? esc(e.tension) + " kg" : "—"}${lb ? `<small>${lb}</small>` : ""}</span></td>
+        <td class="string" data-l="Cordage">${esc(e.string) || "—"}</td>
+        <td class="ops">${ops}</td>
+      </tr>`;
+    }).join("");
+    freshId = null;
+    const empty = !rows.length;
+    $("empty").hidden = !empty;
+    if (empty) {
+      $("emptyTitle").textContent = entries.length ? "Aucun résultat" : "Aucun cordage pour l'instant";
+      $("emptyText").textContent = entries.length
+        ? "Aucun cordage ne correspond à ce filtre."
+        : "Remplissez la fiche ci-dessus pour enregistrer votre premier cordage. Les noms, raquettes, tensions et cordages saisis seront ensuite proposés automatiquement.";
+    }
+    const month = todayISO().slice(0, 7);
+    $("statTotal").textContent = entries.length;
+    $("statMonth").textContent = entries.filter((e) => (e.date || "").startsWith(month)).length;
+    $("statPeople").textContent = new Set(entries.map((e) => norm(e.owner)).filter(Boolean)).size;
+  }
+  $("search").addEventListener("input", render);
+
+  $("rows").addEventListener("click", async (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    const act = b.dataset.act, id = b.dataset.id;
+    if (act === "ask") { confirmId = id; render(); }
+    else if (act === "cancel") { confirmId = null; render(); }
+    else if (act === "copy") {
+      const en = entries.find((x) => x.id === id); if (!en) return;
+      $("f-date").value = todayISO();
+      $("f-owner").value = en.owner || ""; $("f-racket").value = en.racket || "";
+      $("f-tension").value = en.tension || ""; $("f-string").value = en.string || "";
+      updateHints();
+      $("form").scrollIntoView({ behavior: "smooth", block: "start" });
+      setStatus("Formulaire pré-rempli. Vérifiez puis enregistrez.");
+      $("save").focus({ preventScroll: true });
+    } else if (act === "del") {
+      confirmId = null;
+      entries = entries.filter((x) => x.id !== id);
+      persist();
+      render(); updateHints();
+      setStatus("Cordage supprimé.");
+    }
+  });
+
+  /* ---------- Stockage local ---------- */
+  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr.filter((e) => e && e.id) : [];
+    } catch { storageOk = false; return []; }
+  }
+  function persist() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(entries)); storageOk = true; }
+    catch { storageOk = false; }
+    saveToFile();
+    markChange();
+    return storageOk;
+  }
+  function cleanList(list) {
+    const out = [];
+    for (const e of list || []) {
+      if (!e || typeof e !== "object" || !e.owner) continue;
+      out.push({ id: e.id || newId(), date: e.date || "", owner: String(e.owner), racket: String(e.racket || ""),
+        tension: String(e.tension || ""), string: String(e.string || ""), createdAt: Number(e.createdAt) || 0 });
+    }
+    return out;
+  }
+  function mergeIn(list) {
+    const known = new Set(entries.map((e) => e.id));
+    let added = 0;
+    for (const e of cleanList(list)) {
+      if (known.has(e.id)) continue;
+      known.add(e.id); entries.push(e); added++;
+    }
+    return added;
+  }
+  const payload = () => JSON.stringify({ app: "carnet-cordage", version: 1, savedAt: new Date().toISOString(), entries: sorted() }, null, 2);
+
+  /* ---------- Sauvegarde automatique dans un fichier ---------- */
+  const FS_OK = typeof window.showSaveFilePicker === "function";
+  let fileHandle = null;
+  let autoState = "off";   // off | paused | on | error | unsupported
+  let lastWrite = null;
+  let saving = false, again = false;
+
+  function idb(mode, fn) {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("carnet-cordage", 1);
+      req.onupgradeneeded = () => req.result.createObjectStore("kv");
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        const tx = req.result.transaction("kv", mode);
+        const r = fn(tx.objectStore("kv"));
+        tx.oncomplete = () => resolve(r && r.result);
+        tx.onerror = () => reject(tx.error);
+      };
+    });
+  }
+  const idbGet = (k) => idb("readonly", (s) => s.get(k)).catch(() => null);
+  const idbSet = (k, v) => idb("readwrite", (s) => s.put(v, k)).catch(() => null);
+
+  function renderAuto() {
+    const pill = $("autoPill"), head = $("headPill"), text = $("autoText"), btn = $("autoConnect");
+    const name = fileHandle ? fileHandle.name : "";
+    let label, cls = "", msg, btnLabel = null;
+    if (autoState === "share") {
+      const n = unsavedCount();
+      const last = lastShareAt();
+      label = n ? `Sauvegarde à faire (${n})` : "Sauvegarde à jour"; cls = n ? "warn" : "on";
+      msg = (last ? `Dernière sauvegarde le ${last.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} à ${last.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}. ` : "Aucune sauvegarde pour l'instant. ")
+        + (n ? `${n} modification(s) depuis. ` : "")
+        + "Touchez le bouton, puis « Enregistrer dans Fichiers » et choisissez iCloud Drive pour garder une copie.";
+      btnLabel = "Sauvegarder dans Fichiers…";
+    } else if (autoState === "unsupported") {
+      label = "Sauvegarde auto indisponible"; cls = "warn";
+      msg = "Ce navigateur ne peut pas écrire dans un fichier. Ouvrez le carnet avec Microsoft Edge ou Google Chrome pour activer la sauvegarde automatique.";
+    } else if (autoState === "on") {
+      label = "Sauvegarde auto activée"; cls = "on";
+      msg = `Chaque modification est écrite dans « ${name} »` + (lastWrite ? `, dernière écriture à ${lastWrite.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}.` : ".");
+    } else if (autoState === "paused") {
+      label = "Sauvegarde auto en pause"; cls = "warn";
+      msg = `Le navigateur demande votre accord à chaque ouverture du carnet pour écrire dans « ${name} ». Cliquez sur le bouton puis autorisez.`;
+      btnLabel = "Réactiver la sauvegarde automatique";
+    } else if (autoState === "error") {
+      label = "Sauvegarde auto en échec"; cls = "warn";
+      msg = `L'écriture dans « ${name} » a échoué (fichier déplacé, supprimé ou ouvert ailleurs). Choisissez à nouveau le fichier.`;
+      btnLabel = "Choisir le fichier de sauvegarde…";
+    } else {
+      label = "Sauvegarde auto désactivée"; cls = "warn";
+      msg = "Choisissez une fois le fichier de sauvegarde, de préférence dans le dossier du carnet. Chaque cordage ajouté ou supprimé y sera ensuite écrit automatiquement.";
+      btnLabel = "Choisir le fichier de sauvegarde…";
+    }
+    pill.textContent = head.textContent = label;
+    pill.className = head.className = "pill " + cls;
+    text.textContent = msg;
+    btn.hidden = !btnLabel; if (btnLabel) btn.textContent = btnLabel;
+    $("autoChange").hidden = !(fileHandle && autoState === "on");
+  }
+
+  async function writeFile() {
+    try {
+      const w = await fileHandle.createWritable();
+      await w.write(payload());
+      await w.close();
+      lastWrite = new Date(); autoState = "on";
+    } catch { autoState = "error"; }
+    renderAuto();
+  }
+  async function saveToFile() {
+    if (autoState !== "on" || !fileHandle) return;
+    if (saving) { again = true; return; }
+    saving = true;
+    do { again = false; await writeFile(); } while (again && autoState === "on");
+    saving = false;
+  }
+  // Lit le fichier choisi, ajoute ce qu'il contient de plus, puis le réécrit avec le carnet complet
+  async function syncWithFile() {
+    let added = 0;
+    try {
+      const text = await (await fileHandle.getFile()).text();
+      if (text.trim()) {
+        const parsed = JSON.parse(text);
+        added = mergeIn(Array.isArray(parsed) ? parsed : parsed.entries);
+      }
+    } catch { /* fichier neuf ou illisible : il sera réécrit */ }
+    autoState = "on";
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(entries)); } catch {}
+    render(); updateHints();
+    await writeFile();
+    if (added) bkStatus(`${added} cordage(s) récupéré(s) depuis « ${fileHandle.name} ».`);
+  }
+  async function pickFile() {
+    try {
+      const h = await window.showSaveFilePicker({
+        id: "carnet-cordage", suggestedName: "carnet-cordage-donnees.json",
+        types: [{ description: "Sauvegarde du carnet", accept: { "application/json": [".json"] } }],
+      });
+      fileHandle = h;
+      await idbSet("handle", h);
+      await syncWithFile();
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // choix annulé
+      autoState = "error"; renderAuto();
+    }
+  }
+  $("autoConnect").addEventListener("click", async () => {
+    if (autoState === "share") { shareBackup(); return; }
+    if (autoState === "paused" && fileHandle) {
+      try {
+        if ((await fileHandle.requestPermission({ mode: "readwrite" })) === "granted") { await syncWithFile(); return; }
+      } catch {}
+      bkStatus("Autorisation refusée : la sauvegarde automatique reste en pause.", true);
+      return;
+    }
+    pickFile();
+  });
+  $("autoChange").addEventListener("click", pickFile);
+
+  async function initAuto() {
+    if (!FS_OK) { autoState = SHARE_OK ? "share" : "unsupported"; renderAuto(); return; }
+    const h = await idbGet("handle");
+    if (h && typeof h.queryPermission === "function") {
+      fileHandle = h;
+      let perm = "prompt";
+      try { perm = await h.queryPermission({ mode: "readwrite" }); } catch {}
+      if (perm === "granted") { await syncWithFile(); return; }
+      autoState = "paused";
+    }
+    renderAuto();
+  }
+  // Recharge si le carnet est modifié dans un autre onglet
+  window.addEventListener("storage", (e) => {
+    if (e.key === STORE_KEY) { entries = load(); render(); updateHints(); }
+  });
+
+  /* ---------- Sauvegarde / restauration ---------- */
+  function bkStatus(msg, err) { $("bkStatus").textContent = msg; $("bkStatus").className = "status" + (err ? " err" : ""); }
+  function download(name, text, type) {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  /* iPhone / iPad : pas d'écriture directe dans un fichier, on passe par le menu Partager */
+  const UNSAVED_KEY = "carnet-cordage.unsaved", SHARED_KEY = "carnet-cordage.sharedAt";
+  const backupFile = () => new File([payload()], `carnet-cordage-${todayISO()}.json`, { type: "application/json" });
+  const SHARE_OK = (() => {
+    try { return !!(navigator.canShare && navigator.canShare({ files: [new File(["{}"], "t.json", { type: "application/json" })] })); }
+    catch { return false; }
+  })();
+  function unsavedCount() { try { return Number(localStorage.getItem(UNSAVED_KEY)) || 0; } catch { return 0; } }
+  function lastShareAt() { try { const v = localStorage.getItem(SHARED_KEY); return v ? new Date(v) : null; } catch { return null; } }
+  function markChange() {
+    if (autoState !== "share") return;
+    try { localStorage.setItem(UNSAVED_KEY, String(unsavedCount() + 1)); } catch {}
+    renderAuto();
+  }
+  async function shareBackup() {
+    try {
+      await navigator.share({ files: [backupFile()], title: "Sauvegarde du carnet de cordage" });
+      try { localStorage.setItem(UNSAVED_KEY, "0"); localStorage.setItem(SHARED_KEY, new Date().toISOString()); } catch {}
+      bkStatus(`${entries.length} cordage(s) sauvegardé(s).`);
+    } catch (e) {
+      if (!(e && e.name === "AbortError")) bkStatus("La sauvegarde n'a pas abouti. Réessayez.", true);
+    }
+    renderAuto();
+  }
+
+  $("exportJson").addEventListener("click", () => {
+    if (SHARE_OK && !FS_OK) { shareBackup(); return; }
+    download(`carnet-cordage-${todayISO()}.json`, payload(), "application/json");
+    bkStatus(`${entries.length} cordage(s) exporté(s).`);
+  });
+  $("exportCsv").addEventListener("click", () => {
+    const cell = (v) => '"' + (v || "").toString().replace(/"/g, '""') + '"';
+    const lines = [["Date", "Propriétaire", "Raquette", "Tension (kg)", "Cordage"].map(cell).join(";")]
+      .concat(sorted().map((e) => [e.date, e.owner, e.racket, e.tension, e.string].map(cell).join(";")));
+    download(`carnet-cordage-${todayISO()}.csv`, "﻿" + lines.join("\r\n"), "text/csv");
+    bkStatus("Fichier Excel exporté.");
+  });
+  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", async () => {
+    const file = $("importFile").files[0];
+    $("importFile").value = "";
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      const list = Array.isArray(parsed) ? parsed : parsed.entries;
+      if (!Array.isArray(list)) throw new Error();
+      const added = mergeIn(list);
+      persist(); render(); updateHints();
+      bkStatus(added ? `${added} cordage(s) restauré(s). Les entrées déjà présentes ont été ignorées.` : "Aucune nouvelle entrée dans ce fichier.");
+    } catch {
+      bkStatus("Ce fichier n'est pas une sauvegarde du carnet. Choisissez un fichier .json exporté depuis cette application.", true);
+    }
+  });
+
+  /* ---------- Démarrage ---------- */
+  entries = load();
+  resetForm();
+  render();
+  updateHints();
+  if (!storageOk) setStatus("Ce navigateur bloque le stockage local : pensez à exporter vos cordages.", true);
+  initAuto();
+
+  /* Hors ligne : en ligne (https), l'app se met en cache pour fonctionner ensuite sans réseau */
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+})();
+</script>
+</body>
+</html>
