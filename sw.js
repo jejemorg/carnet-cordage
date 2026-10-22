@@ -1,6 +1,6 @@
 // Met l'application en cache pour qu'elle s'ouvre sans connexion.
 // Changez VERSION à chaque mise à jour des fichiers pour que l'iPhone récupère la nouvelle version.
-const VERSION = "carnet-v2";
+const VERSION = "carnet-v3";
 const FILES = ["./", "index.html", "testeur-tension.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {
