@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Testeur de tension</title>
+<meta name="theme-color" content="#1d4f7a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tension">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+/* Même thème que le carnet de cordage */
+:root {
+  --bg: #eef2f5;
+  --surface: #ffffff;
+  --fg: #14212b;
+  --muted: #5b6b78;
+  --line: #d3dce3;
+  --court: #1d4f7a;
+  --court-ink: #ffffff;
+  --ball: #d7e84a;
+  --ball-ink: #1b2400;
+  --danger: #b3261e;
+  --focus: #2f7fd0;
+  --chip: #e3ebf2;
+  --display: "Bahnschrift", "DIN Alternate", "Roboto Condensed", "Arial Narrow", sans-serif;
+  --body: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1820; --surface: #16232e; --fg: #e6edf2; --muted: #93a4b1; --line: #2a3a47;
+    --court: #3d7fb8; --court-ink: #ffffff; --ball: #d7e84a; --ball-ink: #1b2400;
+    --danger: #ff8a80; --focus: #7db8f0; --chip: #1f3141; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1820; --surface: #16232e; --fg: #e6edf2; --muted: #93a4b1; --line: #2a3a47;
+  --court: #3d7fb8; --court-ink: #ffffff; --ball: #d7e84a; --ball-ink: #1b2400;
+  --danger: #ff8a80; --focus: #7db8f0; --chip: #1f3141; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+.wrap { max-width: 920px; margin: 0 auto; display: grid; gap: 28px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: 2.4rem; line-height: 1; margin: 0; letter-spacing: .01em; }
+h1 span { display: inline-block; background: var(--ball); color: var(--ball-ink); padding: 0 .25em; margin-left: .1em; border-radius: 3px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 1.45rem; margin: 0; letter-spacing: .01em; }
+header p { margin: 8px 0 0; color: var(--muted); max-width: 60ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 18px; }
+.card.top { border-top: 4px solid var(--court); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px 16px; }
+.field { display: grid; gap: 5px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+label { font-size: .72rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 700; }
+input, select {
+  font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+  padding: 9px 11px; width: 100%; min-width: 0; font-size: 16px; /* 16px : évite le zoom automatique de Safari sur iPhone */
+}
+input:focus, select:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: transparent; }
+.hint { font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.recall { padding: 12px 14px; border-radius: 8px; background: var(--chip); border: 1px dashed var(--court); margin: 0; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button { font: inherit; cursor: pointer; border-radius: 6px; padding: 9px 16px; border: 1px solid transparent; }
+button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.primary { background: var(--court); color: var(--court-ink); font-weight: 700; }
+.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+.ball { background: var(--ball); color: var(--ball-ink); font-weight: 700; }
+.danger { background: var(--danger); color: var(--surface); }
+.status { font-size: .88rem; color: var(--muted); margin: 0; }
+.status.err { color: var(--danger); }
+
+/* Mesure */
+.readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; font-variant-numeric: tabular-nums; }
+.big b { display: block; font-family: var(--display); font-size: 3rem; line-height: 1; }
+.big b small { font-size: 1.2rem; font-weight: 400; color: var(--muted); margin-left: 4px; }
+.big span { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: .7rem; font-weight: 700; }
+.big.main b { color: var(--court); }
+.taps { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; margin: 0; padding: 0; list-style: none; }
+.taps li { background: var(--chip); border-radius: 999px; padding: 2px 10px; font-size: .82rem; font-variant-numeric: tabular-nums; }
+.taps li.last { background: var(--ball); color: var(--ball-ink); font-weight: 700; }
+canvas { width: 100%; height: 140px; display: block; background: var(--bg); border-radius: 8px; }
+.listening { display: inline-flex; align-items: center; gap: 8px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
+@media (prefers-reduced-motion: no-preference) {
+  .dot { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .25; } }
+}
+details summary { cursor: pointer; font-weight: 700; }
+details[open] summary { margin-bottom: 12px; }
+
+/* Historique */
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-size: .7rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); padding: 10px 10px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 9px 10px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+td.ops { text-align: right; white-space: nowrap; }
+td.ops button { padding: 4px 9px; font-size: .82rem; }
+.loss-ok { color: var(--court); font-weight: 700; }
+.loss-warn { color: var(--danger); font-weight: 700; }
+.empty { padding: 20px; text-align: center; color: var(--muted); }
+@media (max-width: 640px) {
+  h1 { font-size: 2rem; }
+  .big b { font-size: 2.4rem; }
+  th:nth-child(2), td:nth-child(2) { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Testeur de <span>tension</span></h1>
+    <p>Tapotez le tamis : la fréquence du son des cordes donne la tension réelle du cordage, et sa baisse au fil des semaines.</p>
+  </header>
+
+  <section class="card top" aria-labelledby="t-raquette">
+    <h2 id="t-raquette">Raquette</h2>
+    <div class="grid">
+      <div class="field wide">
+        <label for="racket">Joueur · raquette</label>
+        <input id="racket" list="rackets" autocomplete="off" placeholder="ex. Paul · Pure Aero">
+        <datalist id="rackets"></datalist>
+      </div>
+      <div class="field">
+        <label for="head">Tamis (in²)</label>
+        <input id="head" type="number" inputmode="decimal" min="80" max="130" step="1" value="100">
+      </div>
+      <div class="field">
+        <label for="gauge">Jauge (mm)</label>
+        <input id="gauge" type="number" inputmode="decimal" min="1.05" max="1.45" step="0.01" value="1.25">
+      </div>
+      <div class="field">
+        <label for="material">Type de corde</label>
+        <select id="material">
+          <option value="1380">Polyester (monofilament)</option>
+          <option value="1150">Multifilament / synthétique</option>
+          <option value="1300">Boyau naturel</option>
+        </select>
+      </div>
+    </div>
+    <p class="recall" id="recall" hidden></p>
+  </section>
+
+  <section class="card" aria-labelledby="t-mesure">
+    <h2 id="t-mesure">Mesure</h2>
+    <p class="hint" style="margin:0">Tenez la raquette par le manche, tamis à l'horizontale, micro du téléphone à 5–10 cm sous le centre. Tapotez les cordes au centre avec l'ongle ou le bord d'une balle, 4 ou 5 fois, dans un endroit calme.</p>
+    <div class="actions">
+      <button class="primary" id="listen" type="button">Écouter</button>
+      <button class="ghost" id="reset" type="button">Effacer les tapotements</button>
+      <button class="ghost" id="demo" type="button" hidden>Simuler un tapotement</button>
+      <span class="listening" id="listening" hidden><span class="dot"></span> À l'écoute…</span>
+    </div>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+
+    <div class="readout">
+      <div class="big main"><span>Tension estimée</span><b id="r-kg">—<small>kg</small></b><div class="hint" id="r-lb"></div></div>
+      <div class="big"><span>Fréquence</span><b id="r-hz">—<small>Hz</small></b><div class="hint" id="r-spread"></div></div>
+    </div>
+    <ul class="taps" id="taps" aria-label="Tapotements détectés"></ul>
+    <canvas id="spectrum" width="880" height="140" aria-label="Spectre du dernier tapotement"></canvas>
+
+    <div class="actions">
+      <button class="ball" id="save" type="button" disabled>Enregistrer la mesure</button>
+    </div>
+
+    <details>
+      <summary>Étalonnage</summary>
+      <div class="grid">
+        <div class="field">
+          <label for="real">Tension réelle (kg)</label>
+          <input id="real" type="number" inputmode="decimal" min="10" max="35" step="0.5">
+        </div>
+        <div class="field" style="align-self:end">
+          <button class="ghost" id="calibrate" type="button" disabled>Étalonner sur la mesure</button>
+        </div>
+        <div class="field" style="align-self:end">
+          <button class="ghost" id="uncal" type="button">Réinitialiser</button>
+        </div>
+      </div>
+      <p class="hint" id="calinfo"></p>
+      <p class="hint">Le calcul physique donne un ordre de grandeur. Pour un suivi précis, mesurez le jour du recordage et étalonnez sur la tension de pose : la raquette affichera ensuite la perte de tension par rapport à ce jour-là. L'étalonnage est propre à chaque raquette.</p>
+    </details>
+  </section>
+
+  <section class="card" aria-labelledby="t-hist">
+    <h2 id="t-hist">Historique de cette raquette</h2>
+    <div id="history"></div>
+  </section>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const STORE_KEY = "testeur-tension.v1";
+  const CARNET_KEY = "carnet-cordage.v1";   // lu seulement, pour proposer les raquettes et la tension de pose
+  const DEFAULT_FACTOR = 0.8;                // fréquence réelle / fréquence de la membrane idéale
+  const FMIN = 300, FMAX = 1000;             // bande où chercher la fréquence du tamis
+  const SEG = 4096, NFFT = 32768;            // segment analysé, et taille de la FFT (bourrage de zéros)
+  const MAX_TAPS = 8;
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmt = (n, d = 1) => n.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const median = (a) => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+
+  // ---------- Stockage ----------
+  let state = { profiles: {}, measures: [] };
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (raw && typeof raw === "object") state = { profiles: raw.profiles || {}, measures: Array.isArray(raw.measures) ? raw.measures : [] };
+  } catch {}
+  function persist() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); return true; }
+    catch { setStatus("Impossible d'enregistrer dans ce navigateur (stockage bloqué).", true); return false; }
+  }
+
+  // Dernier recordage connu de chaque « joueur · raquette » dans le carnet
+  function carnetRackets() {
+    let entries = [];
+    try { entries = JSON.parse(localStorage.getItem(CARNET_KEY)) || []; } catch {}
+    const map = new Map();
+    for (const e of Array.isArray(entries) ? entries : []) {
+      if (!e || !e.racket) continue;
+      const name = e.owner ? `${e.owner} · ${e.racket}` : e.racket;
+      const prev = map.get(name);
+      if (!prev || (e.date || "") > (prev.date || "")) map.set(name, e);
+    }
+    return map;
+  }
+  const carnet = carnetRackets();
+
+  // "24/23" → 23,5 (moyenne montants/travers)
+  function tensionKg(t) {
+    const nums = String(t || "").replace(/,/g, ".").match(/\d+(\.\d+)?/g);
+    if (!nums) return null;
+    const v = nums.map(Number);
+    return v.reduce((a, b) => a + b, 0) / v.length;
+  }
+  // Devine jauge et type de corde à partir du nom de corde saisi dans le carnet
+  function guessString(name) {
+    const s = String(name || "").toLowerCase();
+    const g = s.replace(/,/g, ".").match(/\b1\.[0-4]\d\b/);
+    let material = null;
+    if (/boyau|gut|vs touch|natural/.test(s)) material = "1300";
+    else if (/multi|nylon|synth|nrg|xcel|x-one|touch|velocity|tonic/.test(s)) material = "1150";
+    else if (s) material = "1380";
+    return { gauge: g ? Number(g[0]) : null, material };
+  }
+
+  // ---------- Physique ----------
+  // Tamis assimilé à une membrane circulaire de même surface : f = C · 2,405/(2πR) · √(T / 2μ)
+  // (T : tension d'une corde en N, μ : masse linéique, 2μ car montants et travers portent la masse)
+  function geometry() {
+    const head = Number($("head").value) || 100;
+    const d = (Number($("gauge").value) || 1.25) / 1000;
+    const rho = Number($("material").value) || 1380;
+    const R = Math.sqrt(head * 6.4516e-4 / Math.PI);
+    const mu = rho * Math.PI * d * d / 4;
+    return { R, mu };
+  }
+  function idealHz(kg) { const { R, mu } = geometry(); return 2.405 / (2 * Math.PI * R) * Math.sqrt(kg * 9.80665 / (2 * mu)); }
+  function hzToKg(hz, factor) { const { R, mu } = geometry(); const v = hz / factor * 2 * Math.PI * R / 2.405; return 2 * mu * v * v / 9.80665; }
+
+  // ---------- Profil courant ----------
+  const racketName = () => $("racket").value.trim();
+  function profile() { return state.profiles[racketName()] || null; }
+  function factor() { const p = profile(); return (p && p.factor) || DEFAULT_FACTOR; }
+  function saveProfile(extra = {}) {
+    const name = racketName();
+    if (!name) return;
+    state.profiles[name] = { ...(state.profiles[name] || {}), head: $("head").value, gauge: $("gauge").value, material: $("material").value, ...extra };
+    persist();
+  }
+
+  function loadRacket() {
+    const name = racketName();
+    const p = state.profiles[name];
+    const c = carnet.get(name);
+    if (p) {
+      $("head").value = p.head || 100; $("gauge").value = p.gauge || 1.25; $("material").value = p.material || "1380";
+    } else if (c) {
+      const g = guessString(c.string);
+      if (g.gauge) $("gauge").value = g.gauge;
+      if (g.material) $("material").value = g.material;
+    }
+    if (c) {
+      const kg = tensionKg(c.tension);
+      const days = Math.round((Date.now() - new Date(c.date).getTime()) / 864e5);
+      $("recall").innerHTML = `Dernier recordage dans le carnet : <strong>${esc(c.tension)} kg</strong>` +
+        (c.string ? ` en ${esc(c.string)}` : "") + `, le ${esc(fmtDate(c.date))}` +
+        (days >= 0 ? ` (il y a ${days} jour${days > 1 ? "s" : ""})` : "") + ".";
+      $("recall").hidden = false;
+      if (kg) $("real").value = kg;
+    } else {
+      $("recall").hidden = true;
+    }
+    refresh();
+    renderHistory();
+  }
+
+  // ---------- FFT (radix 2, en place) ----------
+  function fft(re, im) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) {
+      let bit = n >> 1;
+      for (; j & bit; bit >>= 1) j ^= bit;
+      j ^= bit;
+      if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+    }
+    for (let len = 2; len <= n; len <<= 1) {
+      const a = -2 * Math.PI / len, wr = Math.cos(a), wi = Math.sin(a);
+      for (let i = 0; i < n; i += len) {
+        let cr = 1, ci = 0;
+        for (let k = 0; k < len / 2; k++) {
+          const p = i + k, q = p + len / 2;
+          const tr = re[q] * cr - im[q] * ci, ti = re[q] * ci + im[q] * cr;
+          re[q] = re[p] - tr; im[q] = im[p] - ti; re[p] += tr; im[p] += ti;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+  }
+
+  // Analyse d'un tapotement : renvoie la fréquence du pic dominant dans [FMIN, FMAX], ou null
+  function analyse(samples, sr) {
+    let peakAbs = 0, peakIdx = 0;
+    for (let i = 0; i < samples.length; i++) { const a = Math.abs(samples[i]); if (a > peakAbs) { peakAbs = a; peakIdx = i; } }
+    if (peakAbs < 1e-3) return null;
+    let onset = peakIdx;
+    while (onset > 0 && Math.abs(samples[onset - 1]) > peakAbs * 0.3) onset--;
+    const start = onset + Math.round(0.003 * sr);   // saute le choc du doigt
+    const len = Math.min(SEG, samples.length - start);
+    if (len < 1024) return null;
+    const re = new Float64Array(NFFT), im = new Float64Array(NFFT);
+    for (let i = 0; i < len; i++) re[i] = samples[start + i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (len - 1)));
+    fft(re, im);
+    const binHz = sr / NFFT;
+    const lo = Math.floor(200 / binHz), hi = Math.ceil(1200 / binHz);
+    const db = new Float32Array(hi - lo);
+    for (let k = lo; k < hi; k++) db[k - lo] = 10 * Math.log10(re[k] * re[k] + im[k] * im[k] + 1e-20);
+    const a = Math.ceil(FMIN / binHz) - lo, b = Math.floor(FMAX / binHz) - lo;
+    let best = a;
+    for (let k = a; k <= b; k++) if (db[k] > db[best]) best = k;
+    // Pic net ? (au moins 12 dB au-dessus de la médiane de la bande)
+    const band = Array.from(db.subarray(a, b + 1));
+    if (db[best] - median(band) < 12) return { hz: null, db, lo, binHz };
+    // Interpolation parabolique pour une précision sous le pas de fréquence
+    const y0 = db[best - 1], y1 = db[best], y2 = db[best + 1];
+    const off = (y0 - 2 * y1 + y2) === 0 ? 0 : 0.5 * (y0 - y2) / (y0 - 2 * y1 + y2);
+    return { hz: (lo + best + off) * binHz, db, lo, binHz };
+  }
+
+  // ---------- Audio ----------
+  let ctx = null, analyser = null, stream = null, buf = null, raf = 0;
+  let floor = 0.002, lastTrigger = 0, pending = false;
+  let taps = [];
+  let lastSpectrum = null;
+
+  async function ensureContext() {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 32768;
+      analyser.smoothingTimeConstant = 0;
+      buf = new Float32Array(analyser.fftSize);
+    }
+    if (ctx.state === "suspended") await ctx.resume();
+    if (!raf) loop();
+  }
+
+  async function startListening() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus(location.protocol === "http:" ? "Le micro n'est accessible qu'en HTTPS." : "Ce navigateur ne donne pas accès au micro.", true);
+      return;
+    }
+    try {
+      await ensureContext();
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      $("listen").textContent = "Arrêter";
+      $("listening").hidden = false;
+      setStatus("Tapotez les cordes au centre du tamis.");
+    } catch (err) {
+      setStatus(err && err.name === "NotAllowedError" ? "Accès au micro refusé. Autorisez-le dans les réglages du navigateur." : "Impossible d'ouvrir le micro.", true);
+    }
+  }
+  function stopListening() {
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    stream = null;
+    $("listen").textContent = "Écouter";
+    $("listening").hidden = true;
+    setStatus("");
+  }
+
+  // Surveille le niveau sonore et déclenche l'analyse sur un tapotement
+  function loop() {
+    raf = requestAnimationFrame(loop);
+    analyser.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for (let i = buf.length - 1024; i < buf.length; i++) sum += buf[i] * buf[i];
+    const rms = Math.sqrt(sum / 1024);
+    const now = performance.now();
+    if (!pending && rms > Math.max(0.01, floor * 6) && now - lastTrigger > 400) {
+      pending = true; lastTrigger = now;
+      setTimeout(capture, 200);   // laisse le son se développer avant de le récupérer
+    } else if (!pending) {
+      floor = floor * 0.98 + rms * 0.02;
+    }
+  }
+  function capture() {
+    pending = false;
+    analyser.getFloatTimeDomainData(buf);
+    const sr = ctx.sampleRate;
+    const r = analyse(buf.subarray(buf.length - Math.round(0.45 * sr)), sr);
+    if (!r) return;
+    lastSpectrum = r;
+    if (r.hz) {
+      taps.push(r.hz);
+      if (taps.length > MAX_TAPS) taps.shift();
+      setStatus("");
+    } else {
+      setStatus("Son pas assez net : tapotez plus franchement, au centre, dans un endroit calme.");
+    }
+    refresh();
+    drawSpectrum();
+  }
+
+  // Mode démo (?demo) : un son amorti synthétique à la place du micro, pour vérifier la chaîne d'analyse
+  async function fakeTap() {
+    await ensureContext();
+    const target = idealHz(Number($("real").value) || 23) * factor() * (0.99 + Math.random() * 0.02);
+    const osc = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + 0.02;
+    osc.frequency.value = target;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.setValueAtTime(0.5, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    osc.connect(g); g.connect(analyser); g.connect(ctx.destination);
+    osc.start(); osc.stop(t + 0.2);
+  }
+
+  // ---------- Affichage ----------
+  function setStatus(msg, err = false) { $("status").textContent = msg; $("status").classList.toggle("err", err); }
+
+  function currentHz() { return taps.length ? median(taps) : null; }
+
+  function refresh() {
+    const hz = currentHz();
+    $("taps").innerHTML = taps.map((t, i) => `<li${i === taps.length - 1 ? ' class="last"' : ""}>${fmt(t, 0)} Hz</li>`).join("");
+    if (hz) {
+      const kg = hzToKg(hz, factor());
+      $("r-hz").innerHTML = `${fmt(hz, 0)}<small>Hz</small>`;
+      $("r-kg").innerHTML = `${fmt(kg)}<small>kg</small>`;
+      $("r-lb").textContent = `${fmt(kg * 2.20462)} lb · ${taps.length} tapotement${taps.length > 1 ? "s" : ""}`;
+      const spread = taps.length > 1 ? (Math.max(...taps) - Math.min(...taps)) / hz * 100 : null;
+      $("r-spread").textContent = spread == null ? "Faites quelques tapotements de plus" :
+        spread < 3 ? `Mesures cohérentes (écart ${fmt(spread)} %)` : `Mesures dispersées (écart ${fmt(spread)} %) : refaites-en quelques-unes`;
+    } else {
+      $("r-hz").innerHTML = "—<small>Hz</small>";
+      $("r-kg").innerHTML = "—<small>kg</small>";
+      $("r-lb").textContent = ""; $("r-spread").textContent = "";
+    }
+    $("save").disabled = !hz || !racketName();
+    $("save").title = !racketName() ? "Indiquez d'abord la raquette" : "";
+    $("calibrate").disabled = !hz || !racketName();
+    const p = profile();
+    $("calinfo").textContent = p && p.factor
+      ? `Raquette étalonnée le ${fmtDate(p.calibratedAt)} (coefficient ${fmt(p.factor, 3)}).`
+      : `Non étalonnée : coefficient par défaut ${fmt(DEFAULT_FACTOR, 2)}.`;
+  }
+
+  function drawSpectrum() {
+    const cv = $("spectrum"), g = cv.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = w * dpr; cv.height = h * dpr; g.scale(dpr, dpr);
+    g.clearRect(0, 0, w, h);
+    const css = getComputedStyle(document.documentElement);
+    const r = lastSpectrum;
+    g.font = "11px " + css.getPropertyValue("--body");
+    g.fillStyle = css.getPropertyValue("--muted");
+    if (!r) { g.fillText("Le spectre du dernier tapotement s'affichera ici", 10, h / 2); return; }
+    const max = Math.max(...r.db), min = max - 60;
+    const x = (hz) => (hz - 200) / 1000 * w;
+    for (let f = 300; f <= 1100; f += 100) { g.fillText(f + " Hz", x(f) + 3, h - 4); g.fillRect(x(f), 0, 1, h - 16); }
+    g.beginPath();
+    g.strokeStyle = css.getPropertyValue("--court"); g.lineWidth = 1.5;
+    for (let k = 0; k < r.db.length; k++) {
+      const X = x((r.lo + k) * r.binHz), Y = (h - 18) * (1 - (Math.max(r.db[k], min) - min) / 60) + 2;
+      k ? g.lineTo(X, Y) : g.moveTo(X, Y);
+    }
+    g.stroke();
+    if (r.hz) {
+      g.fillStyle = css.getPropertyValue("--danger");
+      g.fillRect(x(r.hz) - 1, 0, 2, h - 16);
+      g.fillText(fmt(r.hz, 0) + " Hz", Math.min(x(r.hz) + 4, w - 50), 12);
+    }
+  }
+
+  let confirmId = null, confirmTimer = 0;
+  function renderHistory() {
+    const name = racketName();
+    const list = state.measures.filter((m) => m.racket === name).sort((a, b) => a.date.localeCompare(b.date));
+    if (!name || !list.length) {
+      $("history").innerHTML = `<p class="empty">${name ? "Aucune mesure enregistrée pour cette raquette." : "Choisissez une raquette pour voir ses mesures."}</p>`;
+      return;
+    }
+    // Référence : première mesure depuis le dernier recordage du carnet (sinon la toute première)
+    const c = carnet.get(name);
+    const since = c ? list.filter((m) => m.date.slice(0, 10) >= c.date) : list;
+    const ref = (since.length ? since : list)[0];
+    const f = factor();
+    const rows = list.slice().reverse().map((m) => {
+      const kg = hzToKg(m.hz, f);
+      // Tension ∝ f² : la perte se calcule sur les fréquences, indépendamment de l'étalonnage
+      const loss = m.date <= ref.date ? null : (1 - (m.hz / ref.hz) ** 2) * 100;
+      const lossTxt = loss == null ? (m === ref ? "réf." : "—") :`<span class="${loss > 15 ? "loss-warn" : "loss-ok"}">${loss >= 0 ? "−" : "+"}${fmt(Math.abs(loss))} %</span>`;
+      return `<tr><td>${esc(fmtDate(m.date))}</td><td>${fmt(m.hz, 0)} Hz</td><td><b>${fmt(kg)} kg</b></td><td>${lossTxt}</td>` +
+        `<td class="ops"><button type="button" class="${confirmId === m.id ? "danger" : "ghost"}" data-del="${esc(m.id)}">${confirmId === m.id ? "Confirmer" : "Suppr."}</button></td></tr>`;
+    }).join("");
+    $("history").innerHTML = `<table><thead><tr><th>Date</th><th>Fréquence</th><th>Tension</th><th>Perte</th><th></th></tr></thead><tbody>${rows}</tbody></table>` +
+      `<p class="hint">Perte calculée par rapport à la mesure du ${esc(fmtDate(ref.date))}. Au-delà de 15 %, un recordage se justifie souvent.</p>`;
+  }
+
+  // ---------- Événements ----------
+  $("rackets").innerHTML = [...new Set([...carnet.keys(), ...Object.keys(state.profiles)])].sort((a, b) => a.localeCompare(b, "fr"))
+    .map((n) => `<option value="${esc(n)}">`).join("");
+  $("racket").addEventListener("change", loadRacket);
+  $("racket").addEventListener("input", () => { refresh(); renderHistory(); });
+  for (const id of ["head", "gauge", "material"]) $(id).addEventListener("change", () => { saveProfile(); refresh(); renderHistory(); });
+
+  $("listen").addEventListener("click", () => stream ? stopListening() : startListening());
+  $("reset").addEventListener("click", () => { taps = []; lastSpectrum = null; refresh(); drawSpectrum(); });
+  $("save").addEventListener("click", () => {
+    const hz = currentHz();
+    if (!hz || !racketName()) return;
+    saveProfile();
+    state.measures.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), racket: racketName(), date: new Date().toISOString(), hz });
+    if (persist()) setStatus(`Mesure enregistrée : ${fmt(hzToKg(hz, factor()))} kg.`);
+    taps = []; refresh(); renderHistory();
+  });
+  $("calibrate").addEventListener("click", () => {
+    const real = Number($("real").value), hz = currentHz();
+    if (!hz || !(real > 5)) { setStatus("Indiquez la tension réelle en kg.", true); return; }
+    saveProfile({ factor: hz / idealHz(real), calibratedAt: new Date().toISOString() });
+    setStatus(`Étalonné : ${fmt(hz, 0)} Hz correspond à ${fmt(real)} kg pour cette raquette.`);
+    refresh(); renderHistory();
+  });
+  $("uncal").addEventListener("click", () => {
+    const p = profile();
+    if (p) { delete p.factor; delete p.calibratedAt; persist(); }
+    refresh(); renderHistory();
+  });
+  $("history").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-del]");
+    if (!btn) return;
+    const id = btn.dataset.del;
+    clearTimeout(confirmTimer);
+    if (confirmId === id) {
+      state.measures = state.measures.filter((m) => m.id !== id);
+      confirmId = null; persist();
+    } else {
+      confirmId = id;
+      confirmTimer = setTimeout(() => { confirmId = null; renderHistory(); }, 4000);
+    }
+    renderHistory();
+  });
+  window.addEventListener("resize", drawSpectrum);
+
+  if (new URLSearchParams(location.search).has("demo")) {
+    $("demo").hidden = false;
+    $("demo").addEventListener("click", fakeTap);
+  }
+
+  loadRacket();
+  drawSpectrum();
+
+  /* Hors ligne : en ligne (https), la page se met en cache avec le carnet */
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
