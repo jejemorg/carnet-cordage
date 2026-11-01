@@ -1,7 +1,7 @@
 // Met l'application en cache pour qu'elle s'ouvre sans connexion.
 // Changez VERSION à chaque mise à jour des fichiers pour que l'iPhone récupère la nouvelle version.
-const VERSION = "carnet-v4";
-const FILES = ["./", "index.html", "testeur-tension.html", "reglage-guitare.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
+const VERSION = "carnet-v5";
+const FILES = ["./", "index.html", "testeur-tension.html", "reglage-guitare.html", "guitare-180.png", "guitare-192.png", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
