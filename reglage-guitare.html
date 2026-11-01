@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Réglage guitare</title>
+<meta name="theme-color" content="#1d4f7a">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+/* Même thème que le carnet de cordage */
+:root {
+  --bg: #eef2f5;
+  --surface: #ffffff;
+  --fg: #14212b;
+  --muted: #5b6b78;
+  --line: #d3dce3;
+  --court: #1d4f7a;
+  --court-ink: #ffffff;
+  --ball: #d7e84a;
+  --ball-ink: #1b2400;
+  --danger: #b3261e;
+  --focus: #2f7fd0;
+  --chip: #e3ebf2;
+  --ok: #2e7d32;
+  --act: #c25a12;
+  --display: "Bahnschrift", "DIN Alternate", "Roboto Condensed", "Arial Narrow", sans-serif;
+  --body: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1820; --surface: #16232e; --fg: #e6edf2; --muted: #93a4b1; --line: #2a3a47;
+    --court: #3d7fb8; --court-ink: #ffffff; --ball: #d7e84a; --ball-ink: #1b2400;
+    --danger: #ff8a80; --focus: #7db8f0; --chip: #1f3141; --ok: #7bc47f; --act: #f0a05a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1820; --surface: #16232e; --fg: #e6edf2; --muted: #93a4b1; --line: #2a3a47;
+  --court: #3d7fb8; --court-ink: #ffffff; --ball: #d7e84a; --ball-ink: #1b2400;
+  --danger: #ff8a80; --focus: #7db8f0; --chip: #1f3141; --ok: #7bc47f; --act: #f0a05a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: 2.4rem; line-height: 1; margin: 0; letter-spacing: .01em; }
+h1 span { display: inline-block; background: var(--ball); color: var(--ball-ink); padding: 0 .25em; margin-left: .1em; border-radius: 3px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 1.3rem; margin: 0; letter-spacing: .01em; }
+h3 { font-size: 1rem; margin: 0; }
+header p { margin: 8px 0 0; color: var(--muted); max-width: 65ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.cols { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+.cols > div { display: grid; gap: 24px; min-width: 0; }
+@media (max-width: 860px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+
+/* Champs */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+label.f { display: grid; gap: 4px; font-size: .88rem; color: var(--muted); }
+label.f b { color: var(--fg); font-weight: 600; }
+input[type=text], select {
+  font: inherit; font-size: 16px; width: 100%; padding: 8px 10px; border-radius: 7px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+}
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.hint { font-size: .8rem; color: var(--muted); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row > select { flex: 1 1 180px; width: auto; }
+button {
+  font: inherit; cursor: pointer; padding: 8px 14px; border-radius: 7px;
+  border: 1px solid var(--line); background: var(--chip); color: var(--fg);
+}
+button.primary { background: var(--court); color: var(--court-ink); border-color: var(--court); font-weight: 600; }
+button.danger { color: var(--danger); }
+button.small { padding: 3px 9px; font-size: .85rem; }
+fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }
+legend { padding: 0 6px; font-weight: 600; font-size: .92rem; }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.checks label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.checks input { width: 18px; height: 18px; accent-color: var(--court); }
+details > summary { cursor: pointer; font-weight: 600; }
+details.help > summary { font-weight: 400; color: var(--court); font-size: .88rem; }
+details.help p, details.help ol, details.help ul { margin: 6px 0 0; font-size: .9rem; }
+.strings { display: grid; gap: 8px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 520px) { .strings { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Diagnostic */
+.step { border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; }
+.step.act { border-left-color: var(--act); }
+.step.ok { border-left-color: var(--ok); }
+.step.first { box-shadow: 0 0 0 2px var(--act); }
+.step p, .step ul { margin: 0; }
+.step ul { padding-left: 1.2em; }
+.step .head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.pill { font-size: .75rem; font-weight: 600; padding: 1px 8px; border-radius: 99px; background: var(--chip); color: var(--muted); white-space: nowrap; }
+.pill.act { background: var(--act); color: #fff; }
+.pill.ok { background: var(--ok); color: #fff; }
+.big { font-family: var(--display); font-size: 1.15rem; font-weight: 600; }
+.buzz { background: var(--chip); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; }
+.buzz ul { margin: 0; padding-left: 1.2em; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+.scroll { overflow-x: auto; }
+.empty { color: var(--muted); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Réglage <span>guitare</span></h1>
+    <p>Relève le relief du manche, la hauteur des cordes et l'endroit où ça frise : l'outil te dit quoi régler, dans quel ordre et de combien, pour avoir des cordes aussi basses que possible sans frisette gênante.</p>
+  </header>
+
+  <div class="cols">
+    <div>
+      <section class="card" aria-labelledby="t-guitare">
+        <h2 id="t-guitare">Guitare</h2>
+        <div class="row">
+          <select id="guitar" aria-label="Guitare"></select>
+          <button id="add" type="button">Nouvelle</button>
+          <button id="del" type="button" class="danger">Supprimer</button>
+        </div>
+        <div class="grid">
+          <label class="f"><b>Nom</b><input type="text" data-g="name" autocomplete="off"></label>
+          <label class="f"><b>Manche</b><select data-g="preset"></select></label>
+          <label class="f"><b>Façon de jouer</b><select data-g="profile"></select></label>
+          <label class="f"><b>Chevalet</b><select data-g="bridge"></select></label>
+          <label class="f"><b>Écrou de la tige</b><select data-g="rod"></select></label>
+          <label class="f"><b>Diapason</b><select data-g="scale"></select></label>
+        </div>
+        <fieldset>
+          <legend>Valeurs visées</legend>
+          <div class="grid">
+            <label class="f"><b>Relief (mm)</b><input type="text" inputmode="decimal" data-t="relief"><span class="hint" data-inch="relief"></span></label>
+            <label class="f"><b>Action Mi grave (mm)</b><input type="text" inputmode="decimal" data-t="bass"><span class="hint" data-inch="bass"></span></label>
+            <label class="f"><b>Action Mi aigu (mm)</b><input type="text" inputmode="decimal" data-t="treble"><span class="hint" data-inch="treble"></span></label>
+          </div>
+          <div class="row"><button id="reset-targets" type="button" class="small">Revenir aux valeurs du manche et de la façon de jouer</button></div>
+        </fieldset>
+      </section>
+
+      <section class="card" aria-labelledby="t-releves">
+        <h2 id="t-releves">Relevés</h2>
+        <details class="help" open><summary>Avant de mesurer</summary>
+          <ul>
+            <li>Cordes de ton tirant habituel, en bon état, et guitare accordée à ton accordage habituel : c'est la tension des cordes qui courbe le manche.</li>
+            <li>Guitare tenue en position de jeu (sur la cuisse) ou posée bien à plat sur un coussin, sans appui sous la tête.</li>
+            <li>Laisse-la quelques heures dans la pièce si elle arrive du froid ou d'un endroit humide.</li>
+            <li>Mesure toujours au même endroit et de la même façon, pour que les relevés soient comparables d'une fois sur l'autre.</li>
+            <li>Laisse vide ce que tu n'as pas mesuré. Virgule ou point acceptés.</li>
+          </ul>
+        </details>
+
+        <fieldset>
+          <legend>1. Relief du manche</legend>
+          <label class="f"><b>Écart corde–frette à la 7e/8e case, Mi grave (mm)</b><input type="text" inputmode="decimal" data-m="relief"></label>
+          <details class="help"><summary>Comment mesurer</summary>
+            <p>La corde sert de règle bien droite entre deux frettes ; on mesure de combien le manche se creuse en dessous.</p>
+            <ol>
+              <li>Pose un capodastre à la 1re case, pour avoir les deux mains libres.</li>
+              <li>Avec la main droite (ou le coude), appuie le Mi grave juste derrière la frette où le manche rejoint le corps : la 17e sur une Strat ou une Tele, la 16e sur une Les Paul. Sur une guitare sans repère, prends la dernière frette.</li>
+              <li>Regarde la frette 7 ou 8 (toujours la même d'une fois sur l'autre) : la corde passe un tout petit peu au-dessus.</li>
+              <li>Glisse des cales d'épaisseur (jeu de cales de mécanicien, 0,05 à 0,5 mm) entre le haut de la frette et le dessous de la corde. Retiens la plus épaisse qui passe en frôlant la corde <em>sans la soulever</em> : si la corde bouge, la cale est trop épaisse.</li>
+            </ol>
+            <p>Sans cales : appuie comme ci-dessus et tapote la corde avec un doigt au-dessus de la 7e frette. Un petit « tic » à peine audible : relief faible (0,1–0,2 mm). Un vrai déplacement visible : relief marqué (0,3 mm et plus). Aucun jeu, la corde touche déjà : manche droit ou en contre-courbure, saisis 0. Repères d'épaisseur : feuille de papier ≈ 0,1 mm, carte de visite ≈ 0,3 mm.</p>
+          </details>
+        </fieldset>
+
+        <fieldset>
+          <legend>2. Action à la 12e case</legend>
+          <div class="grid">
+            <label class="f"><b>Mi grave (mm)</b><input type="text" inputmode="decimal" data-m="bass"></label>
+            <label class="f"><b>Mi aigu (mm)</b><input type="text" inputmode="decimal" data-m="treble"></label>
+          </div>
+          <details class="help"><summary>Comment mesurer</summary>
+            <ol>
+              <li>Retire le capodastre : aucune corde appuyée.</li>
+              <li>Pose le bout du réglet <em>sur le sommet</em> de la 12e frette (pas sur le bois de la touche), bien perpendiculaire, juste à côté du Mi grave.</li>
+              <li>Lis la graduation au niveau du <em>dessous</em> de la corde, l'œil à la même hauteur pour ne pas fausser la lecture.</li>
+              <li>Recommence pour le Mi aigu. Les quatre autres cordes suivent l'arrondi du manche, inutile de les mesurer.</li>
+            </ol>
+            <p>Un réglet de luthier (graduations au demi-millimètre ou en 64e de pouce) est l'outil idéal. Astuce pour être plus précis : glisse sous la corde, au-dessus de la 12e frette, une clé Allen ou un foret de diamètre connu (1,5 mm, 2 mm…). S'il passe en frôlant, l'action est égale à ce diamètre ; s'il soulève la corde, elle est plus basse.</p>
+          </details>
+        </fieldset>
+
+        <fieldset>
+          <legend>3. Sillet</legend>
+          <div class="grid">
+            <label class="f"><b>Mi grave (mm)</b><input type="text" inputmode="decimal" data-m="nutB"></label>
+            <label class="f"><b>Mi aigu (mm)</b><input type="text" inputmode="decimal" data-m="nutT"></label>
+          </div>
+          <details class="help"><summary>Comment mesurer</summary>
+            <p>Le sillet est la pièce blanche (ou noire) entre la tête et la 1re frette. On mesure si ses fentes laissent la corde trop haute ou trop basse.</p>
+            <ol>
+              <li>Appuie le Mi grave dans la 3e case, juste derrière la 3e frette, comme pour jouer la note.</li>
+              <li>La corde forme alors une ligne droite de la 3e frette au sillet. Regarde l'écart entre cette corde et le sommet de la 1re frette.</li>
+              <li>Glisse une cale de 0,05 ou 0,1 mm (ou une feuille de papier fin) : elle doit passer tout juste.</li>
+              <li>Recommence pour le Mi aigu.</li>
+            </ol>
+            <p>Sans cale, tapote la corde au-dessus de la 1re frette en gardant la 3e case appuyée. Un petit « tic » : c'est bon, saisis 0,08. Aucun bruit, la corde est déjà posée sur la frette : saisis 0. Un jeu bien visible : glisse des cales pour le chiffrer.</p>
+          </details>
+        </fieldset>
+
+        <fieldset>
+          <legend>4. Frisette</legend>
+          <p class="hint" style="margin:0">Branche la guitare, son clair, volume habituel. Joue chaque corde à vide puis case par case jusqu'en haut du manche, avec ton attaque habituelle. Une frisette qui ne s'entend que débranchée ne compte pas. Où est-ce que ça frise ?</p>
+          <div class="checks" role="group" aria-label="Endroit de la frisette">
+            <label><input type="checkbox" data-b="vide"> Cordes à vide</label>
+            <label><input type="checkbox" data-b="bas"> Cases 1 à 4</label>
+            <label><input type="checkbox" data-b="milieu"> Cases 5 à 12</label>
+            <label><input type="checkbox" data-b="haut"> Cases 13 et plus</label>
+            <label><input type="checkbox" data-b="unique"> Une seule case précise</label>
+          </div>
+          <div class="checks" role="group" aria-label="Cordes concernées">
+            <label><input type="checkbox" data-b="graves"> Cordes graves (Mi, La, Ré)</label>
+            <label><input type="checkbox" data-b="aigus"> Cordes aiguës (Sol, Si, mi)</label>
+          </div>
+          <div class="checks">
+            <label><input type="checkbox" data-b="fort"> Seulement en attaquant fort, et ça ne s'entend pas dans l'ampli</label>
+          </div>
+        </fieldset>
+
+        <details>
+          <summary>5. Justesse (octaves), en dernier</summary>
+          <p class="hint">Avec un accordeur précis au cent (pas une appli approximative) et des cordes pas trop vieilles :</p>
+          <ol class="hint" style="margin:0;padding-left:1.2em">
+            <li>Accorde la corde à vide exactement.</li>
+            <li>Joue l'harmonique de la 12e case (doigt posé sans appuyer juste au-dessus de la frette) : l'accordeur doit indiquer 0.</li>
+            <li>Appuie la corde dans la 12e case, normalement, sans écraser ni tirer de côté, et lis l'écart.</li>
+            <li>Saisis cet écart en cents : <b>+</b> si la note appuyée est plus haute, <b>−</b> si plus basse.</li>
+          </ol>
+          <div class="strings">
+            <label class="f"><b>Mi grave</b><input type="text" inputmode="text" data-i="0"></label>
+            <label class="f"><b>La</b><input type="text" inputmode="text" data-i="1"></label>
+            <label class="f"><b>Ré</b><input type="text" inputmode="text" data-i="2"></label>
+            <label class="f"><b>Sol</b><input type="text" inputmode="text" data-i="3"></label>
+            <label class="f"><b>Si</b><input type="text" inputmode="text" data-i="4"></label>
+            <label class="f"><b>Mi aigu</b><input type="text" inputmode="text" data-i="5"></label>
+          </div>
+        </details>
+
+        <label class="f"><b>Note</b><input type="text" data-m="note" placeholder="Cordes neuves en 10-46, tige 1/8 de tour…" autocomplete="off"></label>
+        <div class="row">
+          <button id="save" type="button" class="primary">Enregistrer ce relevé</button>
+          <button id="clear" type="button">Vider les champs</button>
+          <span id="saved" class="hint" role="status"></span>
+        </div>
+      </section>
+    </div>
+
+    <div>
+      <section class="card" aria-labelledby="t-diag" aria-live="polite">
+        <h2 id="t-diag">Quoi régler</h2>
+        <div id="out" style="display:grid;gap:10px"></div>
+      </section>
+
+      <section class="card" aria-labelledby="t-hist">
+        <h2 id="t-hist">Historique de cette guitare</h2>
+        <div id="hist" class="scroll"></div>
+      </section>
+
+      <section class="card" aria-labelledby="t-bases">
+        <h2 id="t-bases">À savoir</h2>
+        <details class="help" open><summary>L'ordre compte</summary>
+          <p>Tige (relief) → hauteur au chevalet (action) → sillet → justesse → micros. Chaque réglage modifie les suivants : après un tour de tige, l'action a bougé ; après un changement d'action, la justesse aussi.</p>
+        </details>
+        <details class="help"><summary>Le bon réglage</summary>
+          <p>Il n'y a pas de hauteur « juste » : la bonne est la plus basse qui ne frise pas dans l'ampli avec ta façon de jouer. Une petite frisette débranchée, en attaquant fort, est normale sur une électrique.</p>
+        </details>
+        <details class="help"><summary>Règle des moitiés</summary>
+          <p>La 12e case est au milieu du diapason : monter un pontet de 1 mm ne monte la corde que d'environ 0,5 mm à la 12e. L'outil fait le calcul pour toi.</p>
+        </details>
+        <details class="help"><summary>La tige, avec prudence</summary>
+          <ul>
+            <li>Vu face à l'écrou : sens des aiguilles d'une montre = serrer = moins de relief (manche plus droit).</li>
+            <li>Détends un peu les cordes avant, 1/8 de tour à la fois, réaccorde, puis attends au moins un quart d'heure (l'idéal : une nuit) avant de remesurer.</li>
+            <li>Si l'écrou force ou ne tourne plus : arrête et passe chez un luthier.</li>
+          </ul>
+        </details>
+        <details class="help"><summary>Outils utiles</summary>
+          <p>Réglet de luthier, jeu de cales d'épaisseur (0,05 à 0,5 mm), capodastre, clés Allen et clé de tige adaptées à ta guitare, accordeur précis au cent.</p>
+        </details>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const KEY = 'reglage-guitare.v1';
+  const TOL_RELIEF = 0.05;   // mm autour de la cible
+  const TOL_ACTION = 0.15;
+  const NUT_MIN = 0.03, NUT_MAX = 0.13;
+  const STEP_UP = 0.2;       // remontée conseillée à la 12e quand ça frise
+
+  // Cibles de départ (mm). Relief et action d'après les recommandations usuelles des fabricants.
+  const PRESETS = {
+    'fender-725': { label: 'Fender vintage, radius 7,25″', relief: 0.30, bass: 2.0, treble: 1.8 },
+    'fender-95':  { label: 'Fender moderne, radius 9,5″ à 12″', relief: 0.25, bass: 1.9, treble: 1.6 },
+    'gibson-12':  { label: 'Gibson, Epiphone, radius 12″', relief: 0.25, bass: 1.9, treble: 1.4 },
+    'plat':       { label: 'Manche plat, radius 14″ à 17″ (Ibanez, Jackson…)', relief: 0.20, bass: 1.7, treble: 1.4 }
+  };
+  const PROFILES = {
+    leger:    { label: 'Jeu léger, cordes basses', d: -0.3 },
+    standard: { label: 'Standard', d: 0 },
+    appuye:   { label: 'Jeu appuyé, bends larges, slide', d: 0.4 }
+  };
+  const BRIDGES = {
+    pontets: {
+      label: 'Pontets individuels (Strat, Tele)', perTurn: 0.6,
+      how: "les deux vis de hauteur du pontet (clé Allen 1,5 mm, ou 0,050″ sur les modèles américains). Tourne les deux vis du même nombre de tours pour que le pontet reste à plat, et garde l'arrondi : règle les quatre cordes du milieu en suivant la courbe du manche.",
+      intonation: "la vis à l'arrière du chevalet : la serrer (sens des aiguilles) recule le pontet."
+    },
+    tom: {
+      label: 'Tune-o-matic (Les Paul, SG, 335…)', perTurn: 1,
+      how: "la molette du poteau de ce côté du chevalet (elle déplace les trois cordes de ce côté). Détends un peu les cordes avant de tourner, puis réaccorde.",
+      intonation: "la vis de réglage du pontet, sur le chevalet (tournevis plat ou cruciforme)."
+    },
+    flottant: {
+      label: 'Vibrato flottant (Floyd Rose, Edge…)', perTurn: 1,
+      how: "le pivot de ce côté du vibrato. Bloque le vibrato ou détends les cordes avant, puis réaccorde et vérifie que la plaque reste parallèle à la caisse.",
+      intonation: "desserrer la vis de blocage du pontet, le déplacer, resserrer (cordes détendues ; un outil de réglage Floyd aide beaucoup)."
+    }
+  };
+  const RODS = {
+    tete:  "écrou à la tête, sous le cache",
+    talon: "écrou au talon : sur les Fender vintage il faut détendre les cordes et dévisser le manche pour y accéder",
+    roue:  "roue au talon, accessible sans démonter"
+  };
+  const RODS_LABELS = { tete: 'À la tête', talon: 'Au talon (manche à démonter)', roue: 'Roue au talon' };
+  const SCALES = { 648: '648 mm (25,5″, Fender)', 628: '628 mm (24,75″, Gibson)', 635: '635 mm (25″, PRS)', 610: '610 mm (24″, Mustang, Jaguar)' };
+  const STRINGS = ['Mi grave', 'La', 'Ré', 'Sol', 'Si', 'Mi aigu'];
+  const ZONES = { vide: 'à vide', bas: 'cases 1–4', milieu: 'cases 5–12', haut: 'cases 13+', unique: 'une case' };
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = v => { if (v == null) return null; const s = String(v).trim().replace(',', '.').replace('−', '-'); if (s === '') return null; const n = Number(s); return Number.isFinite(n) ? n : null; };
+  const fmt = (n, d = 2) => n.toFixed(d).replace('.', ',');
+  const fmtShort = n => fmt(n, Math.abs(n * 10 - Math.round(n * 10)) < 1e-9 ? 1 : 2);
+  const inch64 = mm => Math.max(1, Math.round(mm / 25.4 * 64)) + '/64″';
+  const thou = mm => fmt(mm / 25.4, 3) + '″';
+  const quarterTurns = t => {
+    const q = Math.max(1, Math.round(t * 4));
+    const whole = Math.floor(q / 4), frac = ['', '¼', '½', '¾'][q % 4];
+    if (!whole) return frac + ' de tour';
+    return whole + (frac ? ' ' + frac : '') + (q > 4 ? ' tours' : ' tour');
+  };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const today = () => new Date().toISOString().slice(0, 10);
+  const frDate = iso => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
+
+  function targetsFor(g) {
+    const p = PRESETS[g.preset] || PRESETS['fender-95'], d = (PROFILES[g.profile] || PROFILES.standard).d;
+    return { relief: fmt(p.relief), bass: fmtShort(p.bass + d), treble: fmtShort(p.treble + d) };
+  }
+  function newGuitar(name) {
+    const g = { id: uid(), name, preset: 'fender-95', profile: 'standard', bridge: 'pontets', rod: 'tete', scale: '648', draft: emptyDraft(), history: [] };
+    g.targets = targetsFor(g);
+    return g;
+  }
+  function emptyDraft() { return { relief: '', bass: '', treble: '', nutB: '', nutT: '', note: '', buzz: {}, into: ['', '', '', '', '', ''] }; }
+
+  // ---------- Stockage ----------
+  let state;
+  function load() {
+    try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { state = null; }
+    if (!state || !Array.isArray(state.guitars) || !state.guitars.length) {
+      const g = newGuitar('Ma guitare');
+      state = { guitars: [g], current: g.id };
+    }
+    if (!cur()) state.current = state.guitars[0].id;
+  }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* stockage indisponible */ } }
+  const cur = () => state.guitars.find(g => g.id === state.current);
+
+  // ---------- Analyse ----------
+  function measures(g) {
+    const d = g.draft;
+    return {
+      relief: num(d.relief), bass: num(d.bass), treble: num(d.treble), nutB: num(d.nutB), nutT: num(d.nutT),
+      buzz: d.buzz || {}, into: (d.into || []).map(num)
+    };
+  }
+
+  function analyze(g) {
+    const m = measures(g), z = m.buzz, B = BRIDGES[g.bridge] || BRIDGES.pontets;
+    const T = { relief: num(g.targets.relief), bass: num(g.targets.bass), treble: num(g.targets.treble) };
+    const steps = [], buzz = [];
+
+    // 1. Relief
+    let reliefState = 'none';
+    const rel = { title: 'Courbure du manche (tige)', how: [] };
+    if (m.relief == null || T.relief == null) {
+      rel.status = 'none';
+      rel.text = "Pas encore mesuré. C'est par là qu'il faut commencer : la tige change aussi la hauteur des cordes.";
+    } else {
+      const d = m.relief - T.relief;
+      rel.big = `${fmt(m.relief)} mm · cible ${fmt(T.relief)} mm (≈ ${thou(T.relief)})`;
+      if (d < -TOL_RELIEF) {
+        reliefState = 'low';
+        rel.status = 'act';
+        rel.text = m.relief <= 0.02
+          ? "Manche droit ou en contre-courbure : les cordes frisent dans les premières cases."
+          : "Manche trop droit : risque de frisette dans les premières cases et au milieu du manche.";
+        rel.how.push(`Desserre la tige : sens inverse des aiguilles d'une montre, vu face à l'écrou (${RODS[g.rod]}).`);
+      } else if (d > TOL_RELIEF) {
+        reliefState = 'high';
+        rel.status = 'act';
+        rel.text = "Manche trop creusé : les cordes sont hautes au milieu du manche et peuvent friser dans les cases aiguës.";
+        rel.how.push(`Serre la tige : sens des aiguilles d'une montre, vu face à l'écrou (${RODS[g.rod]}).`);
+      } else {
+        reliefState = 'ok';
+        rel.status = 'ok';
+        rel.text = 'Relief correct, ne touche pas à la tige.';
+      }
+      if (rel.status === 'act') {
+        rel.how.push("1/8 de tour à la fois, cordes un peu détendues. Réaccorde, attends au moins un quart d'heure, remesure.");
+        if (Math.abs(d) > 0.2) rel.how.push("L'écart est grand : il faudra sans doute plusieurs passes. Si l'écrou force, arrête et passe chez un luthier.");
+      }
+    }
+    steps.push(rel);
+
+    // Nut d'abord (sert au diagnostic de frisette)
+    const nutState = { bass: nutStatus(m.nutB), treble: nutStatus(m.nutT) };
+
+    // Diagnostic de frisette
+    const raise = { bass: false, treble: false };
+    const zoneKeys = Object.keys(ZONES).filter(k => z[k]);
+    const sideSel = z.graves || z.aigus;
+    const sides = ['bass', 'treble'].filter(s => !sideSel || (s === 'bass' ? z.graves : z.aigus));
+    const sideLabel = s => s === 'bass' ? 'graves' : 'aiguës';
+    if (zoneKeys.length) {
+      const soft = !!z.fort;
+      if (soft) buzz.push("Frisette seulement en attaque forte et inaudible dans l'ampli : c'est normal avec une action basse. Rien d'obligatoire, remonte un peu l'action seulement si ça te gêne en jouant.");
+      const only = k => zoneKeys.length === 1 && zoneKeys[0] === k;
+      if (z.unique) {
+        buzz.push("Frisette sur une seule case : souvent une frette plus haute que les autres (celle juste après la case jouée), ou une frette qui se soulève. Test : pose une petite règle bien droite à cheval sur trois frettes ; si elle bascule, la frette du milieu dépasse. Correction : ré-enfoncer ou niveler la frette, plutôt chez un luthier. Ne monte pas toute l'action pour une seule case.");
+      }
+      if (!soft && !only('unique')) {
+        const low = z.vide || z.bas, mid = z.milieu, high = z.haut;
+        let explained = { low: false, mid: false, high: false };
+        if (z.vide && !z.bas && !mid && !high) {
+          const nutLow = sides.some(s => nutState[s] === 'low');
+          buzz.push(nutLow
+            ? 'Frisette seulement à vide, et le sillet est trop bas : la cause est le sillet (voir plus bas).'
+            : "Frisette seulement à vide : regarde d'abord le sillet (fente trop creusée). " + (m.nutB == null && m.nutT == null ? 'Mesure-le (étape 3).' : 'Il semble correct, vérifie la corde concernée en particulier.'));
+          explained.low = true;
+        }
+        if ((low || mid) && reliefState === 'low') {
+          buzz.push('Frisette dans le bas et le milieu du manche, avec un manche trop droit : la cause principale est le relief. Desserre la tige avant de toucher au chevalet.');
+          explained.low = explained.mid = true;
+        }
+        if (high && reliefState === 'high') {
+          buzz.push('Frisette dans les cases aiguës avec un manche trop creusé : serre la tige avant de toucher au chevalet.');
+          explained.high = true;
+        }
+        if (low && !explained.low && sides.some(s => nutState[s] === 'low')) {
+          buzz.push('Frisette dans les premières cases et sillet trop bas : le sillet est en cause.');
+          explained.low = true;
+        }
+        if (low && !explained.low && reliefState === 'none') {
+          buzz.push('Frisette dans les premières cases : causes habituelles, un relief trop faible ou un sillet trop bas. Mesure-les avant de remonter le chevalet.');
+          explained.low = true;
+        }
+        const rest = (low && !explained.low) || (mid && !explained.mid) || (high && !explained.high);
+        if (rest) {
+          sides.forEach(s => { raise[s] = true; });
+          const where = [low && !explained.low && 'bas', mid && !explained.mid && 'milieu', high && !explained.high && 'haut'].filter(Boolean);
+          buzz.push(`Frisette ${where.length === 3 ? 'sur tout le manche' : 'dans le ' + where.join(' et le ') + ' du manche'} sur les cordes ${sides.map(sideLabel).join(' et ')} : le relief n'explique pas tout, regarde la hauteur au chevalet de ce côté (voir plus bas).`);
+          if (high && !explained.high && reliefState === 'ok') buzz.push("Si ça frise encore au-delà de la 12e case avec une action normale, la touche remonte peut-être au talon (« ski jump ») : affaire de luthier (nivellement des frettes).");
+        }
+      }
+    }
+
+    // 2. Action, par côté
+    ['bass', 'treble'].forEach(side => {
+      const v = m[side], t = T[side];
+      const st = { title: 'Hauteur ' + (side === 'bass' ? 'Mi grave' : 'Mi aigu') + ' (chevalet)', how: [] };
+      if (v == null || t == null) {
+        st.status = 'none';
+        st.text = "Pas encore mesurée.";
+        steps.push(st);
+        return;
+      }
+      st.big = `${fmt(v, 1)} mm · cible ${fmt(t, 1)} mm (≈ ${inch64(t)})`;
+      if (rel.status === 'act') {
+        st.status = 'wait';
+        st.text = "Règle d'abord la tige, puis remesure : l'action va changer.";
+        steps.push(st);
+        return;
+      }
+      if (raise[side] && v >= t - TOL_ACTION) {
+        st.status = 'act';
+        st.text = "Ça frise de ce côté alors que la corde n'est pas basse : monter encore le chevalet ne ferait que masquer le problème. Ne descends pas non plus.";
+        st.how.push("Vérifie les frettes : une petite règle bien droite posée sur trois frettes voisines qui bascule signale une frette haute. Nivellement des frettes : luthier.");
+        st.how.push('Vérifie aussi le relief au plus près de la cible, et que le Mi grave est bien mesuré à la 12e case.');
+        steps.push(st);
+        return;
+      }
+      let delta = 0, why = '';
+      if (raise[side]) {
+        delta = Math.max(t - v, STEP_UP);
+        why = 'Ça frise de ce côté : remonte';
+      } else if (v - t > TOL_ACTION) {
+        delta = t - v;
+        why = 'Trop haut : descends';
+      }
+      if (!delta) {
+        st.status = 'ok';
+        st.text = t - v > TOL_ACTION
+          ? "Plus bas que la cible et sans frisette gênante : parfait, n'y touche pas."
+          : 'Hauteur correcte.';
+      } else {
+        const saddle = Math.abs(delta) * 2;
+        st.status = 'act';
+        st.text = `${why} de ${fmt(Math.abs(delta), 1)} mm à la 12e case, soit environ ${fmt(saddle, 1)} mm au chevalet.`;
+        st.how.push(`Tourne ${B.how}`);
+        st.how.push(`Environ ${quarterTurns(saddle / B.perTurn)} (≈ ${fmt(B.perTurn, 1)} mm par tour, à vérifier sur ta vis), puis remesure.`);
+        if (delta < 0) st.how.push("Descends par petits pas et rejoue à chaque fois : si ça se met à friser dans l'ampli avant la cible, remonte d'un cran. La bonne hauteur est la plus basse sans frisette gênante.");
+      }
+      steps.push(st);
+    });
+
+    // 3. Sillet
+    const nut = { title: 'Sillet', how: [] };
+    if (m.nutB == null && m.nutT == null) {
+      nut.status = 'none';
+      nut.text = 'Pas encore mesuré.';
+    } else {
+      const parts = [];
+      if (m.nutB != null) parts.push(`Mi grave ${fmt(m.nutB)} mm`);
+      if (m.nutT != null) parts.push(`Mi aigu ${fmt(m.nutT)} mm`);
+      nut.big = parts.join(' · ') + ` · cible ${fmt(NUT_MIN + 0.02)} à ${fmt(NUT_MAX - 0.03)} mm`;
+      const states = [nutState.bass, nutState.treble];
+      if (states.includes('low')) {
+        nut.status = 'act';
+        nut.text = 'Fente trop basse : la corde touche presque la 1re frette, elle frise à vide.';
+        nut.how.push("Remède : rehausser la fente (poudre d'os ou de bicarbonate + colle cyano, puis relimer) ou changer le sillet. Plutôt un travail de luthier.");
+      }
+      if (states.includes('high')) {
+        nut.status = 'act';
+        nut.text = (nut.text ? nut.text + ' ' : '') + 'Fente trop haute : les premières cases sont dures à jouer et les accords sonnent faux près de la tête.';
+        nut.how.push("Remède : approfondir la fente à la lime à sillet, très peu à la fois et en remesurant souvent (une fente trop creusée ne se rattrape pas). Ou luthier.");
+      }
+      if (!nut.status) { nut.status = 'ok'; nut.text = 'Hauteur au sillet correcte.'; }
+    }
+    steps.push(nut);
+
+    // 4. Justesse
+    const L = Number(g.scale) || 648;
+    const into = { title: 'Justesse (octaves)', how: [] };
+    const vals = m.into.map((c, i) => ({ c, i })).filter(x => x.c != null);
+    if (!vals.length) {
+      into.status = 'none';
+      into.text = "À faire en dernier, avec des cordes en bon état : chaque changement d'action la modifie.";
+    } else {
+      const bad = vals.filter(x => Math.abs(x.c) > 2);
+      if (!bad.length) { into.status = 'ok'; into.text = 'Toutes les cordes saisies sont justes à ±2 cents.'; }
+      else {
+        into.status = 'act';
+        into.text = 'Corrige les pontets suivants, réaccorde à vide et recontrôle :';
+        bad.forEach(({ c, i }) => {
+          const mm = Math.abs(c) * L / 1731;
+          into.how.push(`${STRINGS[i]} : ${c > 0 ? '+' : '−'}${fmt(Math.abs(c), 0)} cents → ${c > 0 ? 'recule le pontet (vers l\'arrière de la guitare)' : 'avance le pontet (vers le manche)'} d'environ ${fmt(mm, 1)} mm.`);
+        });
+        into.how.push(`Réglage : ${B.intonation}`);
+      }
+      if (rel.status === 'act' || steps.some(s => /Hauteur/.test(s.title) && s.status === 'act')) {
+        into.status = 'wait';
+        into.text = "Termine d'abord la tige et la hauteur : elles déplacent la justesse.";
+        into.how = [];
+      }
+    }
+    steps.push(into);
+
+    // 5. Micros
+    steps.push({
+      title: 'Hauteur des micros', status: 'info',
+      text: "En dernier. Corde appuyée à la dernière case, mesure entre la corde et le pôle du micro : en général 2 à 3 mm, un peu plus côté graves que côté aigus. Trop près, le son devient flou et les simples bobinages tirent sur la corde (fausses notes).",
+      how: []
+    });
+
+    return { steps, buzz };
+  }
+  function nutStatus(v) { if (v == null) return 'none'; if (v < NUT_MIN) return 'low'; if (v > NUT_MAX) return 'high'; return 'ok'; }
+
+  const PILLS = { act: 'À régler', ok: 'OK', none: 'Non mesuré', wait: 'Plus tard', info: 'Conseil' };
+  function renderOut() {
+    const g = cur(), { steps, buzz } = analyze(g);
+    const first = steps.findIndex(s => s.status === 'act');
+    let html = '';
+    if (buzz.length) html += `<div class="buzz"><h3>Frisette</h3><ul>${buzz.map(b => `<li>${esc(b)}</li>`).join('')}</ul></div>`;
+    if (first < 0 && steps.every(s => s.status !== 'none' || s.title.startsWith('Justesse') || s.status === 'info')) {
+      html += `<p class="big" style="margin:0">Rien à régler d'après ces relevés.</p>`;
+    }
+    html += steps.map((s, i) => `
+      <div class="step ${s.status}${i === first ? ' first' : ''}">
+        <div class="head"><h3>${i + 1}. ${esc(s.title)}</h3><span class="pill ${s.status}">${i === first ? 'Commence ici' : PILLS[s.status]}</span></div>
+        ${s.big ? `<p class="big">${esc(s.big)}</p>` : ''}
+        <p>${esc(s.text)}</p>
+        ${s.how.length ? `<ul>${s.how.map(h => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}
+      </div>`).join('');
+    $('#out').innerHTML = html;
+  }
+
+  // ---------- Historique ----------
+  function renderHist() {
+    const g = cur();
+    if (!g.history.length) { $('#hist').innerHTML = '<p class="empty">Aucun relevé enregistré. Enregistre avant et après chaque réglage pour voir l\'effet.</p>'; return; }
+    const v = (x, d = 2) => { const n = num(x); return n == null ? '–' : fmt(n, d); };
+    $('#hist').innerHTML = `<table>
+      <thead><tr><th>Date</th><th>Relief</th><th>Action graves / aigus</th><th>Sillet</th><th>Frisette</th><th>Note</th><th></th></tr></thead>
+      <tbody>${g.history.slice().reverse().map(h => {
+        const b = h.m.buzz || {};
+        const zones = Object.keys(ZONES).filter(k => b[k]).map(k => ZONES[k]);
+        const buzzTxt = zones.length ? zones.join(', ') + (b.fort ? ' (léger)' : '') : 'non';
+        return `<tr><td>${esc(frDate(h.date))}</td><td>${v(h.m.relief)}</td><td>${v(h.m.bass, 1)} / ${v(h.m.treble, 1)}</td>
+          <td>${v(h.m.nutB)} / ${v(h.m.nutT)}</td><td>${esc(buzzTxt)}</td><td>${esc(h.m.note || '')}</td>
+          <td><button type="button" class="small" data-load="${esc(h.id)}" title="Recharger ce relevé dans le formulaire">Reprendre</button>
+          <button type="button" class="small danger" data-rm="${esc(h.id)}" aria-label="Supprimer ce relevé">✕</button></td></tr>`;
+      }).join('')}</tbody></table>`;
+  }
+
+  // ---------- Formulaire ----------
+  function fillSelect(sel, obj, labelOf) {
+    sel.innerHTML = Object.keys(obj).map(k => `<option value="${esc(k)}">${esc(labelOf(obj[k], k))}</option>`).join('');
+  }
+  function renderGuitars() {
+    $('#guitar').innerHTML = state.guitars.map(g => `<option value="${esc(g.id)}">${esc(g.name || 'Sans nom')}</option>`).join('');
+    $('#guitar').value = state.current;
+    $('#del').disabled = state.guitars.length < 2;
+  }
+  function renderForm() {
+    const g = cur();
+    $$('[data-g]').forEach(el => { el.value = g[el.dataset.g]; });
+    $$('[data-t]').forEach(el => { el.value = g.targets[el.dataset.t]; });
+    $$('[data-m]').forEach(el => { el.value = g.draft[el.dataset.m] || ''; });
+    $$('[data-b]').forEach(el => { el.checked = !!g.draft.buzz[el.dataset.b]; });
+    $$('[data-i]').forEach(el => { el.value = g.draft.into[el.dataset.i] || ''; });
+    renderInches();
+  }
+  function renderInches() {
+    const g = cur();
+    $$('[data-inch]').forEach(el => {
+      const k = el.dataset.inch, n = num(g.targets[k]);
+      el.textContent = n == null ? '' : '≈ ' + (k === 'relief' ? thou(n) : inch64(n));
+    });
+  }
+  function renderAll() { renderGuitars(); renderForm(); renderOut(); renderHist(); }
+
+  function init() {
+    load();
+    fillSelect($('[data-g="preset"]'), PRESETS, p => p.label);
+    fillSelect($('[data-g="profile"]'), PROFILES, p => p.label);
+    fillSelect($('[data-g="bridge"]'), BRIDGES, p => p.label);
+    fillSelect($('[data-g="rod"]'), RODS_LABELS, p => p);
+    fillSelect($('[data-g="scale"]'), SCALES, p => p);
+    renderAll();
+
+    document.addEventListener('input', e => {
+      const el = e.target, g = cur();
+      if (el.dataset.g) {
+        g[el.dataset.g] = el.value;
+        if (el.dataset.g === 'preset' || el.dataset.g === 'profile') { g.targets = targetsFor(g); renderForm(); }
+        if (el.dataset.g === 'name') renderGuitars();
+      } else if (el.dataset.t) { g.targets[el.dataset.t] = el.value; renderInches(); }
+      else if (el.dataset.m) g.draft[el.dataset.m] = el.value;
+      else if (el.dataset.b) g.draft.buzz[el.dataset.b] = el.checked;
+      else if (el.dataset.i) g.draft.into[el.dataset.i] = el.value;
+      else return;
+      $('#saved').textContent = '';
+      persist();
+      renderOut();
+    });
+
+    $('#guitar').addEventListener('change', e => { state.current = e.target.value; persist(); renderAll(); });
+    $('#add').addEventListener('click', () => {
+      const g = newGuitar('Guitare ' + (state.guitars.length + 1));
+      state.guitars.push(g); state.current = g.id; persist(); renderAll();
+      $('[data-g="name"]').select();
+    });
+    $('#del').addEventListener('click', () => {
+      const g = cur();
+      if (state.guitars.length < 2 || !confirm(`Supprimer « ${g.name} » et ses ${g.history.length} relevé(s) ?`)) return;
+      state.guitars = state.guitars.filter(x => x.id !== g.id);
+      state.current = state.guitars[0].id; persist(); renderAll();
+    });
+    $('#reset-targets').addEventListener('click', () => { const g = cur(); g.targets = targetsFor(g); persist(); renderForm(); renderOut(); });
+    $('#save').addEventListener('click', () => {
+      const g = cur(), d = g.draft;
+      const filled = ['relief', 'bass', 'treble', 'nutB', 'nutT'].some(k => num(d[k]) != null) || Object.values(d.buzz).some(Boolean);
+      if (!filled) { $('#saved').textContent = 'Rien à enregistrer.'; return; }
+      g.history.push({ id: uid(), date: today(), m: JSON.parse(JSON.stringify(d)), targets: { ...g.targets } });
+      persist(); renderHist();
+      $('#saved').textContent = 'Relevé enregistré.';
+    });
+    $('#clear').addEventListener('click', () => { cur().draft = emptyDraft(); persist(); renderForm(); renderOut(); });
+    $('#hist').addEventListener('click', e => {
+      const g = cur(), b = e.target.closest('button');
+      if (!b) return;
+      if (b.dataset.rm) { g.history = g.history.filter(h => h.id !== b.dataset.rm); persist(); renderHist(); }
+      if (b.dataset.load) {
+        const h = g.history.find(x => x.id === b.dataset.load);
+        if (h) { g.draft = Object.assign(emptyDraft(), JSON.parse(JSON.stringify(h.m))); persist(); renderForm(); renderOut(); }
+      }
+    });
+  }
+  init();
+
+  /* Hors ligne : en ligne (https), la page se met en cache avec le carnet */
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
